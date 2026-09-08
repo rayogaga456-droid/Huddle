@@ -81,6 +81,22 @@ input {
   color: var(--text-primary-1);
 }
 
+.mini-brand .mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--brand-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mini-brand .mark svg {
+  width: 12px;
+  height: 12px;
+}
+
 /* ========= HEADING ========= */
 /* The real screens use H2 sizing for both "Create your account" and
    "Welcome back" — the 34px H1 in the design system doc is only the
@@ -411,55 +427,63 @@ input {
 }
 
 .illus-card {
-  width: 210px;
+  width: 280px;
   background: #fff;
   border-radius: 14px;
   padding: 16px;
   box-shadow: 0 22px 44px rgba(30, 10, 45, 0.28);
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.illus-card .row {
+.msg-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.msg-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
 }
 
-.illus-card .av {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--brand-400);
-  flex-shrink: 0;
+.msg-content {
+  flex: 1;
+  min-width: 0;
 }
 
-.illus-card .who .l1 {
-  width: 66px;
-  height: 7px;
-  border-radius: 4px;
-  background: var(--text-primary-2);
-  opacity: 0.75;
-  margin-bottom: 5px;
+.msg-top {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 2px;
 }
 
-.illus-card .who .l2 {
-  width: 40px;
-  height: 6px;
-  border-radius: 4px;
-  background: var(--border-default);
+.msg-name {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--text-primary-1);
 }
 
-.illus-card .msgline {
-  height: 7px;
-  border-radius: 4px;
-  background: var(--bg-sunken);
-  margin-bottom: 7px;
+.msg-time {
+  font-size: 10px;
+  color: var(--text-tertiary);
 }
 
-.illus-card .msgline.short {
-  width: 65%;
-  margin-bottom: 0;
+.msg-text {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-primary-3);
 }
 
 /* ========= RESPONSIVE ========= */

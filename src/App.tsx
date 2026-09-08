@@ -112,6 +112,14 @@ function App() {
     <div className="auth-screen">
       <div className="auth-form-col">
         <div className="mini-brand">
+          <div className="mark">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20H6L4 22V12Z"
+                fill="white"
+              />
+            </svg>
+          </div>
           <span>huddle</span>
         </div>
 
@@ -252,15 +260,30 @@ function App() {
           </p>
         </div>
         <div className="illus-card">
-          <div className="row">
-            <div className="av" />
-            <div className="who">
-              <div className="l1" />
-              <div className="l2" />
+          <div className="msg-row">
+            <div className="msg-avatar" style={{ background: "var(--brand-500)" }}>
+              JT
+            </div>
+            <div className="msg-content">
+              <div className="msg-top">
+                <span className="msg-name">Jordan Tate</span>
+                <span className="msg-time">10:14 AM</span>
+              </div>
+              <div className="msg-text">Pushed the auth API — ready to wire up whenever.</div>
             </div>
           </div>
-          <div className="msgline" />
-          <div className="msgline short" />
+          <div className="msg-row">
+            <div className="msg-avatar" style={{ background: "var(--brand-400)" }}>
+              MC
+            </div>
+            <div className="msg-content">
+              <div className="msg-top">
+                <span className="msg-name">Maya Chen</span>
+                <span className="msg-time">10:16 AM</span>
+              </div>
+              <div className="msg-text">Nice — pulling it into the login screen now.</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
