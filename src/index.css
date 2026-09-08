@@ -1,0 +1,17 @@
+/* Replace the ENTIRE contents of src/index.css with this.
+   The default Vite template ships with `body { display: flex;
+   place-items: center }` and centered text — that fights any custom
+   layout and is very likely why things looked "scattered, just words". */
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  min-width: 320px;
+}

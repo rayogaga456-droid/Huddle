@@ -1,0 +1,474 @@
+/* Replace the ENTIRE contents of src/App.css with this.
+   Values pulled directly from the PM's design system file — colors,
+   radii, shadows, and type sizes match the :root tokens and the
+   .auth-form-col / .field / .btn / .oauth-btn / .illus-card rules
+   actually used in the Screens & Annotations frames. */
+
+:root {
+  --brand-700: #5e2a88;
+  --brand-600: #7b3aae;
+  --brand-500: #9b4dd1;
+  --brand-400: #c165d6;
+  --brand-100: #f4e7f8;
+  --brand-gradient: linear-gradient(135deg, #8a3fbf 0%, #c1519e 100%);
+
+  --text-primary-1: #161022;
+  --text-primary-2: #332b44;
+  --text-primary-3: #544b67;
+  --text-secondary: #7c7390;
+  --text-tertiary: #afa8c0;
+
+  --bg-app: #fbfafd;
+  --bg-surface: #ffffff;
+  --bg-sunken: #f4f1f8;
+  --border-default: #dcd3ea;
+
+  --success: #2e9e6d;
+  --success-bg: #e9f7f1;
+  --error: #d8425c;
+  --error-bg: #fcebef;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+
+  font-family: -apple-system, "SF Pro Display", "SF Pro Text", ui-sans-serif, "Segoe UI", Roboto, sans-serif;
+  color: var(--text-primary-2);
+  background: var(--bg-app);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-app);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font-family: inherit;
+}
+
+/* ========= SPLIT SCREEN — full viewport, no outer card ========= */
+
+.auth-screen {
+  display: flex;
+  min-height: 100vh;
+}
+
+.auth-form-col {
+  flex: 1;
+  order: 1;
+  padding: 44px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--bg-surface);
+}
+
+.mini-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 36px;
+}
+
+.mini-brand span {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text-primary-1);
+}
+
+/* ========= HEADING ========= */
+/* The real screens use H2 sizing for both "Create your account" and
+   "Welcome back" — the 34px H1 in the design system doc is only the
+   abstract type-scale sample, not what's implemented. */
+
+.auth-form-col h2 {
+  font-size: 24px;
+  font-weight: 650;
+  color: var(--text-primary-1);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.auth-form-col .sub {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  margin-bottom: 28px;
+}
+
+/* ========= FIELDS ========= */
+
+.field {
+  margin-bottom: 18px;
+}
+
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary-2);
+  margin-bottom: 6px;
+}
+
+.field .req {
+  color: var(--brand-500);
+}
+
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-default);
+  background: var(--bg-surface);
+  font-size: 14px;
+  color: var(--text-primary-1);
+  outline: none;
+  transition: 0.12s;
+}
+
+.input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.input:hover {
+  border-color: #b9a9d1;
+}
+
+.input:focus {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 4px var(--brand-100);
+}
+
+.input:disabled {
+  background: var(--bg-sunken);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+
+.input.error {
+  border-color: var(--error);
+  box-shadow: 0 0 0 4px var(--error-bg);
+}
+
+.hint {
+  font-size: 12px;
+  margin-top: 6px;
+  color: var(--text-tertiary);
+}
+
+.hint.error {
+  color: var(--error);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.forgot-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--brand-600);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ========= CHECKBOX ========= */
+
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-primary-3);
+  line-height: 1.5;
+}
+
+.checkbox-row input {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--brand-500);
+}
+
+.checkbox-row button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--brand-600);
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ========= BUTTONS ========= */
+
+.btn {
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 20px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: 0.12s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-block {
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-primary {
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(123, 58, 174, 0.28);
+}
+
+.btn-primary:hover:not(.disabled) {
+  filter: brightness(1.06);
+}
+
+.btn-primary:active:not(.disabled) {
+  filter: brightness(0.94);
+  transform: translateY(1px);
+}
+
+/* Disabled until every required field is valid and terms are checked —
+   40% opacity, no pointer, per the design system annotation. */
+.btn-primary.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: none;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========= DIVIDER ========= */
+
+.divider-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.divider-line::before,
+.divider-line::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #eae4f2;
+}
+
+/* ========= OAUTH BUTTONS ========= */
+
+.oauth-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.oauth-btn {
+  width: 100%;
+  justify-content: center;
+  gap: 10px;
+  border: 1.5px solid var(--border-default);
+  background: var(--bg-surface);
+  color: var(--text-primary-2);
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 10px;
+}
+
+.oauth-btn:hover {
+  border-color: #b9a9d1;
+  background: var(--bg-sunken);
+}
+
+.oauth-ic {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.oauth-ic.google {
+  background: #fff;
+  border: 1.5px solid var(--border-default);
+  color: #4a4a4a;
+}
+
+.oauth-ic.slack {
+  background: var(--brand-gradient);
+  color: #fff;
+}
+
+/* ========= SWITCH LINK ========= */
+
+.auth-switch {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 22px;
+}
+
+.auth-switch button {
+  background: none;
+  border: none;
+  color: var(--brand-600);
+  font-weight: 650;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* ========= TOP ALERT BANNER ========= */
+
+.top-alert {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--error-bg);
+  border: 1px solid #f3c6d0;
+  color: var(--error);
+  font-size: 13px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+}
+
+.top-alert.success {
+  background: var(--success-bg);
+  border-color: #bfe7d5;
+  color: var(--success);
+}
+
+/* ========= RIGHT ILLUSTRATION PANEL ========= */
+/* Decorative, drops under 720px per the design system annotation. */
+
+.auth-illustration {
+  flex: 0 0 42%;
+  order: 2;
+  background: var(--brand-gradient);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 48px;
+  text-align: center;
+  color: #fff;
+}
+
+.illus-hero h3 {
+  font-size: 21px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+.illus-hero p {
+  font-size: 13px;
+  opacity: 0.82;
+  margin-top: 8px;
+  max-width: 230px;
+  line-height: 1.5;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.illus-card {
+  width: 210px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 22px 44px rgba(30, 10, 45, 0.28);
+  text-align: left;
+}
+
+.illus-card .row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.illus-card .av {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--brand-400);
+  flex-shrink: 0;
+}
+
+.illus-card .who .l1 {
+  width: 66px;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--text-primary-2);
+  opacity: 0.75;
+  margin-bottom: 5px;
+}
+
+.illus-card .who .l2 {
+  width: 40px;
+  height: 6px;
+  border-radius: 4px;
+  background: var(--border-default);
+}
+
+.illus-card .msgline {
+  height: 7px;
+  border-radius: 4px;
+  background: var(--bg-sunken);
+  margin-bottom: 7px;
+}
+
+.illus-card .msgline.short {
+  width: 65%;
+  margin-bottom: 0;
+}
+
+/* ========= RESPONSIVE ========= */
+
+@media (max-width: 720px) {
+  .auth-illustration {
+    display: none;
+  }
+  .auth-form-col {
+    padding: 32px 22px;
+  }
+}
