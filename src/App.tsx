@@ -1,6 +1,11 @@
 import { useState } from "react";
+
 import "./App.css";
-import { loginUser, registerUser } from "./services/auth";
+import {
+  AuthError,
+  loginUser,
+  registerUser,
+} from "./services/auth";
 import { getSession, saveSession } from "./services/sessionStore";
 import HuddleBoard from "./components/HuddleBoard/HuddleBoard";
 
@@ -14,36 +19,19 @@ type FieldErrors = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
-function App() {
-  // =====================================================
-  // AUTHENTICATION
-  // =====================================================
 
-  // Remember the user if a session already exists
+function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return Boolean(getSession());
   });
-
   const [mode, setMode] = useState<Mode>("register");
-
-  // Account created screen
   const [accountCreated, setAccountCreated] = useState(false);
-
-  // Password visibility
   const [showPassword, setShowPassword] = useState(false);
-
-  // =====================================================
-  // FORM STATE
-  // =====================================================
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
-
-  // =====================================================
-  // UI STATE
-  // =====================================================
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState("");
@@ -52,30 +40,19 @@ function App() {
 
   const isRegister = mode === "register";
 
-  // =====================================================
-  // SWITCH BETWEEN LOGIN AND REGISTER
-  // =====================================================
-
   const switchMode = (newMode: Mode) => {
     setMode(newMode);
-
     setAccountCreated(false);
     setShowPassword(false);
-
     setFullName("");
     setEmail("");
     setPassword("");
     setTermsAccepted(false);
-
     setFieldErrors({});
     setFormError("");
     setFormSuccess("");
     setLoading(false);
   };
-
-  // =====================================================
-  // BACK BUTTON
-  // =====================================================
 
   const handleBack = () => {
     setFormError("");
@@ -83,7 +60,6 @@ function App() {
     setFieldErrors({});
     setShowPassword(false);
 
-    // Account Created -> Register
     if (accountCreated) {
       setAccountCreated(false);
       setMode("register");
@@ -91,19 +67,12 @@ function App() {
       return;
     }
 
-    // Register -> Login
-    // Login -> Register
     setMode(isRegister ? "login" : "register");
-
     setFullName("");
     setEmail("");
     setPassword("");
     setTermsAccepted(false);
   };
-
-  // =====================================================
-  // CHECK IF FORM IS VALID
-  // =====================================================
 
   const isFormValid = isRegister
     ? fullName.trim().length > 0 &&
@@ -111,10 +80,6 @@ function App() {
       PASSWORD_RE.test(password) &&
       termsAccepted
     : email.trim().length > 0 && password.length > 0;
-
-  // =====================================================
-  // VALIDATION
-  // =====================================================
 
   const validate = () => {
     const errors: FieldErrors = {};
@@ -129,26 +94,21 @@ function App() {
       errors.email = "Enter a valid email address";
     }
 
-   if (!password) {
-     errors.password = "Enter your password";
-     } else if (isRegister && !PASSWORD_RE.test(password)) {
+    if (!password) {
+      errors.password = "Enter your password";
+    } else if (isRegister && !PASSWORD_RE.test(password)) {
       errors.password =
-      "Use at least 8 characters with at least one letter and one number";
-   }
-    setFieldErrors(errors);
+        "Use at least 8 characters with at least one letter and one number";
+    }
 
+    setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
-
-  // =====================================================
-  // SUBMIT FORM
-  // =====================================================
 
   const handleSubmit = async (
     event: React.FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
-
     setFormError("");
     setFormSuccess("");
     setFieldErrors({});
@@ -159,17 +119,12 @@ function App() {
           ? "We couldn't create your account. Fix the fields below and try again."
           : "That email and password don't match. Try again or reset your password."
       );
-
       return;
     }
 
     setLoading(true);
 
     try {
-      // =================================================
-      // REGISTER
-      // =================================================
-
       if (isRegister) {
         await registerUser({
           name: fullName.trim(),
@@ -177,74 +132,62 @@ function App() {
           password,
         });
 
-        // Show Account Created screen
         setAccountCreated(true);
-
-        // Keep the email for login
-        // Clear only the password
         setPassword("");
-
         setFormError("");
         setFormSuccess("");
         setFieldErrors({});
-
         return;
       }
-
-      // =================================================
-      // LOGIN
-      // =================================================
 
       const { accessToken, user } = await loginUser({
         email: email.trim(),
         password,
       });
 
-      // Save session so login survives refresh
       saveSession({
         accessToken,
         user,
       });
 
-      // Send user to the Huddle message board
       setIsAuthenticated(true);
-    } catch {
-      setFormError(
-        isRegister
-          ? "We couldn't create your account. Fix the fields below and try again."
-          : "That email and password don't match. Try again or reset your password."
-      );
+    } catch (error) {
+      if (isRegister && error instanceof AuthError) {
+        if (error.status === 409) {
+          setFormError(
+            error.message ||
+              "An account with this email already exists."
+          );
+        } else {
+          setFormError(
+            error.message ||
+              "We couldn't create your account. Please check your details and try again."
+          );
+        }
+      } else if (!isRegister && error instanceof AuthError) {
+        setFormError(
+          "That email and password don't match. Try again or reset your password."
+        );
+      } else {
+        setFormError(
+          isRegister
+            ? "We couldn't create your account. Please try again."
+            : "That email and password don't match. Try again."
+        );
+      }
     } finally {
       setLoading(false);
       setPassword("");
     }
   };
 
-  // =====================================================
-  // AUTHENTICATED USER
-  // =====================================================
-
   if (isAuthenticated) {
     return <HuddleBoard />;
   }
 
-  // =====================================================
-  // MAIN SCREEN
-  // =====================================================
-
   return (
     <div className="auth-screen">
-
-      {/* =================================================
-          LEFT / FORM SIDE
-      ================================================= */}
-
       <div className="auth-form-col">
-
-        {/* =================================================
-            ACCOUNT CREATED SCREEN
-        ================================================= */}
-
         {accountCreated ? (
           <div
             style={{
@@ -258,8 +201,6 @@ function App() {
               padding: "40px 20px",
             }}
           >
-
-            {/* Back Arrow */}
             <button
               type="button"
               onClick={handleBack}
@@ -280,7 +221,6 @@ function App() {
               ←
             </button>
 
-            {/* Success Circle */}
             <div
               style={{
                 width: 60,
@@ -309,27 +249,14 @@ function App() {
               </svg>
             </div>
 
-            {/* Title */}
-            <h2
-              style={{
-                marginBottom: 10,
-                color: "#111827",
-              }}
-            >
+            <h2 style={{ marginBottom: 10, color: "#111827" }}>
               Account created
             </h2>
 
-            {/* Description */}
-            <div
-              className="sub"
-              style={{
-                marginBottom: 28,
-              }}
-            >
+            <div className="sub" style={{ marginBottom: 28 }}>
               Sign in with your new account to continue.
             </div>
 
-            {/* Go To Sign In */}
             <button
               type="button"
               className="btn btn-primary"
@@ -347,10 +274,6 @@ function App() {
           </div>
         ) : (
           <>
-            {/* =================================================
-                BACK ARROW
-            ================================================= */}
-
             <button
               type="button"
               onClick={handleBack}
@@ -372,10 +295,6 @@ function App() {
               ←
             </button>
 
-            {/* =================================================
-                BRAND
-            ================================================= */}
-
             <div className="mini-brand">
               <div className="mark">
                 <svg viewBox="0 0 24 24" fill="none">
@@ -385,18 +304,11 @@ function App() {
                   />
                 </svg>
               </div>
-
               <span>huddle</span>
             </div>
 
-            {/* =================================================
-                TITLE
-            ================================================= */}
-
             <h2>
-              {isRegister
-                ? "Create your account"
-                : "Welcome back"}
+              {isRegister ? "Create your account" : "Welcome back"}
             </h2>
 
             <div className="sub">
@@ -405,19 +317,11 @@ function App() {
                 : "Sign in to jump into your channels."}
             </div>
 
-            {/* =================================================
-                ERROR
-            ================================================= */}
-
             {formError && (
               <div className="top-alert">
                 ⚠ {formError}
               </div>
             )}
-
-            {/* =================================================
-                SUCCESS
-            ================================================= */}
 
             {formSuccess && !formError && (
               <div className="top-alert success">
@@ -425,18 +329,11 @@ function App() {
               </div>
             )}
 
-            {/* =================================================
-                FORM
-            ================================================= */}
-
             <form onSubmit={handleSubmit} noValidate>
-
-              {/* FULL NAME */}
               {isRegister && (
                 <div className="field">
                   <label htmlFor="fullName">
-                    Full name{" "}
-                    <span className="req">*</span>
+                    Full name <span className="req">*</span>
                   </label>
 
                   <input
@@ -456,6 +353,10 @@ function App() {
                           fullName: undefined,
                         }));
                       }
+
+                      if (formError) {
+                        setFormError("");
+                      }
                     }}
                   />
 
@@ -467,7 +368,6 @@ function App() {
                 </div>
               )}
 
-              {/* EMAIL */}
               <div className="field">
                 <label htmlFor="email">
                   Email{" "}
@@ -493,6 +393,10 @@ function App() {
                         email: undefined,
                       }));
                     }
+
+                    if (formError) {
+                      setFormError("");
+                    }
                   }}
                 />
 
@@ -503,7 +407,6 @@ function App() {
                 )}
               </div>
 
-              {/* PASSWORD */}
               <div className="field">
                 <label htmlFor="password">
                   Password{" "}
@@ -512,7 +415,6 @@ function App() {
                   )}
                 </label>
 
-                {/* Password wrapper */}
                 <div
                   style={{
                     position: "relative",
@@ -521,11 +423,7 @@ function App() {
                 >
                   <input
                     id="password"
-                    type={
-                      showPassword
-                        ? "text"
-                        : "password"
-                    }
+                    type={showPassword ? "text" : "password"}
                     className={`input ${
                       fieldErrors.password ? "error" : ""
                     }`}
@@ -536,9 +434,7 @@ function App() {
                     }
                     value={password}
                     disabled={loading}
-                    style={{
-                      paddingRight: 50,
-                    }}
+                    style={{ paddingRight: 50 }}
                     onChange={(event) => {
                       setPassword(event.target.value);
 
@@ -548,10 +444,13 @@ function App() {
                           password: undefined,
                         }));
                       }
+
+                      if (formError) {
+                        setFormError("");
+                      }
                     }}
                   />
 
-                  {/* Eye Button */}
                   <button
                     type="button"
                     disabled={loading}
@@ -573,9 +472,7 @@ function App() {
                       border: "none",
                       background: "transparent",
                       padding: 4,
-                      cursor: loading
-                        ? "default"
-                        : "pointer",
+                      cursor: loading ? "default" : "pointer",
                       color: "#7b7287",
                       display: "flex",
                       alignItems: "center",
@@ -583,7 +480,6 @@ function App() {
                     }}
                   >
                     {showPassword ? (
-                      /* OPEN EYE */
                       <svg
                         width="20"
                         height="20"
@@ -595,7 +491,6 @@ function App() {
                           stroke="currentColor"
                           strokeWidth="1.8"
                         />
-
                         <circle
                           cx="12"
                           cy="12"
@@ -605,7 +500,6 @@ function App() {
                         />
                       </svg>
                     ) : (
-                      /* CLOSED / CROSSED EYE */
                       <svg
                         width="20"
                         height="20"
@@ -618,14 +512,12 @@ function App() {
                           strokeWidth="1.8"
                           strokeLinecap="round"
                         />
-
                         <path
                           d="M10.6 5.7C11.05 5.57 11.52 5.5 12 5.5C16.7 5.5 20.2 7.9 22 12C21.2 13.82 20.05 15.27 18.62 16.32"
                           stroke="currentColor"
                           strokeWidth="1.8"
                           strokeLinecap="round"
                         />
-
                         <path
                           d="M6.3 7.05C4.45 8.18 3.03 9.82 2 12C3.8 16.1 7.3 18.5 12 18.5C13.05 18.5 14.04 18.35 14.96 18.06"
                           stroke="currentColor"
@@ -637,25 +529,19 @@ function App() {
                   </button>
                 </div>
 
-                {/* Password hint */}
                 {isRegister &&
                   !fieldErrors.password && (
-                   <div className="hint">
-                    Use 8+ characters with at least one letter and one number.
-                   </div>
+                    <div className="hint">
+                      Use 8+ characters with at least one letter and one number.
+                    </div>
                   )}
 
-                {/* Password error */}
                 {fieldErrors.password && (
                   <div className="hint error">
                     ⚠ {fieldErrors.password}
                   </div>
                 )}
               </div>
-
-              {/* =================================================
-                  FORGOT PASSWORD
-              ================================================= */}
 
               {!isRegister && (
                 <div
@@ -680,16 +566,10 @@ function App() {
                 </div>
               )}
 
-              {/* =================================================
-                  TERMS
-              ================================================= */}
-
               {isRegister && (
                 <div
                   className="field checkbox-row"
-                  style={{
-                    marginBottom: 20,
-                  }}
+                  style={{ marginBottom: 20 }}
                 >
                   <input
                     type="checkbox"
@@ -697,14 +577,12 @@ function App() {
                     checked={termsAccepted}
                     disabled={loading}
                     onChange={(event) =>
-                      setTermsAccepted(
-                        event.target.checked
-                      )
+                      setTermsAccepted(event.target.checked)
                     }
                   />
 
                   <label htmlFor="terms">
-                    I agree to the{" "}
+                    I agree to{" "}
                     <button type="button">
                       Terms
                     </button>{" "}
@@ -716,10 +594,6 @@ function App() {
                 </div>
               )}
 
-              {/* =================================================
-                  SUBMIT BUTTON
-              ================================================= */}
-
               <button
                 type="submit"
                 className={`btn btn-primary btn-block ${
@@ -727,13 +601,9 @@ function App() {
                     ? "disabled"
                     : ""
                 }`}
-                disabled={
-                  loading || !isFormValid
-                }
+                disabled={loading || !isFormValid}
               >
-                {loading && (
-                  <span className="spinner" />
-                )}
+                {loading && <span className="spinner" />}
 
                 {loading
                   ? isRegister
@@ -744,10 +614,6 @@ function App() {
                   : "Sign in"}
               </button>
             </form>
-
-            {/* =================================================
-                OAUTH
-            ================================================= */}
 
             <div className="divider-line">
               or continue with
@@ -774,10 +640,6 @@ function App() {
                 Continue with Slack
               </button>
             </div>
-
-            {/* =================================================
-                SWITCH LOGIN / SIGNUP
-            ================================================= */}
 
             <div className="auth-switch">
               {isRegister ? (
@@ -810,22 +672,13 @@ function App() {
         )}
       </div>
 
-      {/* =====================================================
-          RIGHT SIDE ILLUSTRATION
-      ===================================================== */}
-
       <div className="auth-illustration">
-
         <div className="illus-hero">
           <h3>
             {isRegister ? (
-              <>
-                One place for the whole team to talk.
-              </>
+              <>One place for the whole team to talk.</>
             ) : (
-              <>
-                Pick up right where you left off.
-              </>
+              <>Pick up right where you left off.</>
             )}
           </h3>
 
@@ -837,13 +690,11 @@ function App() {
         </div>
 
         <div className="illus-card">
-
           <div className="msg-row">
             <div
               className="msg-avatar"
               style={{
-                background:
-                  "var(--brand-500)",
+                background: "var(--brand-500)",
               }}
             >
               JT
@@ -870,8 +721,7 @@ function App() {
             <div
               className="msg-avatar"
               style={{
-                background:
-                  "var(--brand-400)",
+                background: "var(--brand-400)",
               }}
             >
               MC
@@ -893,7 +743,6 @@ function App() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
