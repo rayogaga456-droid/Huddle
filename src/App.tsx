@@ -105,7 +105,7 @@ function App() {
       setFormError(
         isRegister
           ? "We couldn't create your account. Fix the fields below and try again."
-          : "Something went wrong. Please try again."
+          : "That email and password don't match. Try again or reset your password."
       );
     } finally {
       setLoading(false);
