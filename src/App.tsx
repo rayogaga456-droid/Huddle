@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "./App.css";
 import { loginUser, registerUser } from "./services/auth";
+import { saveSession } from "./services/sessionStore";
 
 type Mode = "login" | "register";
 
@@ -90,10 +91,14 @@ function App() {
     setLoading(true);
     try {
       if (isRegister) {
-        await registerUser({ fullName: fullName.trim(), email: email.trim(), password });
+        await registerUser({ name: fullName.trim(), email: email.trim(), password });
         setFormSuccess("Account created successfully.");
       } else {
-        await loginUser({ email: email.trim(), password });
+        const { accessToken, user } = await loginUser({ email: email.trim(), password });
+        saveSession({ accessToken, user });
+        // No chat screen wired up yet on this deploy — just confirm
+        // success here. Once the chat screen is ready to link in,
+        // replace this line with whatever shows that screen next.
         setFormSuccess("Signed in successfully.");
       }
     } catch {
