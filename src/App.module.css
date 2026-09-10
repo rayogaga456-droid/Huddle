@@ -1,0 +1,62 @@
+.app {
+  height: 100vh;        /* fallback for older browsers */
+  height: 100dvh;       /* accounts for mobile browser address bar */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-app);
+}
+
+.shell {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ===== MOBILE ===== */
+/* Shell stays as a flex row — panels show/hide via display:none */
+
+/* ===== DEV STATE BAR ===== */
+.devBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 16px;
+  background: var(--brand-700);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.devBar span {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.04em;
+}
+
+.devBtns {
+  display: flex;
+  gap: 4px;
+}
+
+.devBtn {
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  font-weight: 600;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.devBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.devBtn.activeState {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+}

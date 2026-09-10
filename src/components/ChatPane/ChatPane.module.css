@@ -1,0 +1,38 @@
+.pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+}
+
+.messages {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+  .pane {
+    flex: 1;
+  }
+
+  .pane.hidden {
+    display: none;
+  }
+
+  .messages {
+    padding: 8px 0;
+  }
+}
