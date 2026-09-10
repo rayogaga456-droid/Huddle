@@ -16,7 +16,7 @@
 //
 // All errors come back as: { error: "human message", code?: "..." }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://huddle-backend-fdnr.onrender.com/api";
 // Demo/production base URL: to be provided by backend after deployment —
 // set VITE_API_BASE_URL in .env once that's available.
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Workspace } from '../../types';
+import type { Workspace } from '../../types';
 import styles from './WorkspaceSwitcher.module.css';
 
 interface Props {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Channel, Workspace } from '../../types';
+import type { Channel, Workspace } from '../../types';
 import styles from './Sidebar.module.css';
 
 interface Props {

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Channel, ChannelStatus, Message } from '../../types';
+import type { Channel, ChannelStatus, Message } from '../../types';
 import ChannelHeader from '../ChannelHeader/ChannelHeader';
 import MessageBubble from '../MessageBubble/MessageBubble';
 import MessageComposer from '../MessageComposer/MessageComposer';
