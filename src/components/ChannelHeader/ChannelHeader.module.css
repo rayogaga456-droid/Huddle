@@ -1,0 +1,120 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  flex-shrink: 0;
+  gap: 8px;
+  min-height: 56px;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary-1);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.name svg {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* Both .meta and .members are used interchangeably in JSX */
+.meta,
+.members {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.inviteBtn {
+  padding: 7px 16px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-primary-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+
+.inviteBtn:hover {
+  border-color: var(--brand-400);
+  color: var(--brand-600);
+  background: var(--brand-100);
+}
+
+/* ===== MOBILE ===== */
+.backBtn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 10px 12px;
+    justify-content: flex-start;
+    gap: 4px;
+  }
+
+  .backBtn {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 8px;
+    border: none;
+    background: transparent;
+    color: var(--brand-600);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .backBtn:active {
+    background: var(--bg-sunken);
+  }
+
+  .info {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .inviteBtn {
+    display: none;
+  }
+
+  .name {
+    font-size: 14px;
+  }
+
+  .meta,
+  .members {
+    display: none;
+  }
+}
+

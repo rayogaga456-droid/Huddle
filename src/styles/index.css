@@ -1,0 +1,74 @@
+/* ===== DESIGN TOKENS ===== */
+:root {
+  /* Brand */
+  --brand-700: #5E2A88;
+  --brand-600: #7B3AAE;
+  --brand-500: #9B4DD1;
+  --brand-400: #C165D6;
+  --brand-300: #DB8FDE;
+  --brand-100: #F4E7F8;
+  --brand-gradient: linear-gradient(135deg, #8A3FBF 0%, #C1519E 100%);
+
+  /* Text hierarchy */
+  --text-primary-1: #161022;
+  --text-primary-2: #332B44;
+  --text-primary-3: #544B67;
+  --text-secondary:  #7C7390;
+  --text-tertiary:   #AFA8C0;
+  --text-on-brand:   #FFFFFF;
+
+  /* Surfaces */
+  --bg-app:          #FBFAFD;
+  --bg-surface:      #FFFFFF;
+  --bg-sunken:       #F4F1F8;
+  --bg-sidebar:      #FBF6FD;
+  --border-subtle:   #EAE4F2;
+  --border-default:  #DCD3EA;
+  --border-strong:   #B9A9D1;
+
+  /* Semantic */
+  --success:         #2E9E6D;
+  --success-bg:      #E9F7F1;
+  --error:           #D8425C;
+  --error-bg:        #FCEBEF;
+
+  /* Misc */
+  --font-sans: -apple-system, "SF Pro Display", "SF Pro Text", ui-sans-serif,
+               "Segoe UI", Roboto, sans-serif;
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   16px;
+  --radius-full: 999px;
+  --shadow-card: 0 1px 2px rgba(22, 16, 34, .04), 0 4px 16px rgba(22, 16, 34, .06);
+  --shadow-pop:  0 8px 32px rgba(94, 42, 136, .18);
+}
+
+/* ===== RESET ===== */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  background: var(--bg-app);
+  color: var(--text-primary-2);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, p, ul, ol { margin: 0; }
+button { font-family: inherit; cursor: pointer; }
+input  { font-family: inherit; }
+
+::selection { background: var(--brand-300); color: #fff; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar          { width: 5px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: rgba(94, 42, 136, .18); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(94, 42, 136, .32); }

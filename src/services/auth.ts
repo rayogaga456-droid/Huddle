@@ -1,86 +1,89 @@
 // auth.ts
 //
-// BACKEND CONTRACT — read this first.
+// Matches Huddle_API_Endpoint_Contract.docx exactly — do not rename
+// fields without updating that doc first.
 //
-// POST {API_BASE}/auth/register
-//   body:     { fullName: string, email: string, password: string }
-//   success:  200 { success: true, message: string, user: { id, fullName, email } }
-//   failure:  4xx { success: false, message: string }   e.g. "Email already in use"
+// POST /api/auth/register
+//   body:    { email, password, name? }
+//   success: 201 { message, user: { id, email, name } }
+//   errors:  400 (validation), 409 (email already registered)
 //
-// POST {API_BASE}/auth/login
-//   body:     { email: string, password: string }
-//   success:  200 { success: true, message: string, user: { id, fullName, email } }
-//   failure:  401 { success: false, message: string }   generic message only —
-//             never confirm/deny whether the email exists (see login error-state
-//             annotation in the design file: "Deliberately vague about which
-//             field is wrong").
+// POST /api/auth/login
+//   body:    { email, password }
+//   success: 200 { accessToken, user: { id, email, name } }
+//   errors:  400 (missing fields), 401 (invalid credentials — generic,
+//            never reveals which field was wrong)
 //
-// Set VITE_API_BASE_URL in a .env file once the real API exists.
-// Until then this defaults to "/api" and will 404 loudly rather than
-// silently pretending to succeed — that's intentional so nobody mistakes
-// mock success for a working integration.
+// All errors come back as: { error: "human message", code?: "..." }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://huddle-backend-fdnr.onrender.com/api";
+// Demo/production base URL: to be provided by backend after deployment —
+// set VITE_API_BASE_URL in .env once that's available.
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name?: string;
+}
+
+export interface RegisterData {
+  email: string;
+  password: string;
+  name?: string;
+}
 
 export interface LoginData {
   email: string;
   password: string;
 }
 
-export interface RegisterData {
-  fullName: string;
-  email: string;
-  password: string;
+export interface RegisterResponse {
+  message: string;
+  user: AuthUser;
 }
 
-export interface AuthResponse {
-  success: boolean;
-  message: string;
-  user?: {
-    id: string;
-    fullName: string;
-    email: string;
-  };
+export interface LoginResponse {
+  accessToken: string;
+  user: AuthUser;
 }
 
 export class AuthError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  code?: string;
+  constructor(message: string, status: number, code?: string) {
     super(message);
     this.name = "AuthError";
     this.status = status;
+    this.code = code;
   }
 }
 
-async function post(path: string, body: unknown): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE}${path}`, {
+async function parseError(response: Response): Promise<never> {
+  let body: { error?: string; code?: string } = {};
+  try {
+    body = await response.json();
+  } catch {
+    // non-JSON error body
+  }
+  throw new AuthError(body.error || "Something went wrong. Please try again.", response.status, body.code);
+}
+
+export async function registerUser(data: RegisterData): Promise<RegisterResponse> {
+  const response = await fetch(`${API_BASE}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(data),
   });
-
-  let data: AuthResponse | null = null;
-  try {
-    data = await response.json();
-  } catch {
-    // Backend returned a non-JSON body (HTML error page, empty 500, etc.)
-  }
-
-  if (!response.ok) {
-    throw new AuthError(data?.message || "Something went wrong. Please try again.", response.status);
-  }
-
-  if (!data) {
-    throw new AuthError("Unexpected empty response from the server.", response.status);
-  }
-
-  return data;
+  if (!response.ok) return parseError(response);
+  return response.json();
 }
 
-export function loginUser(data: LoginData): Promise<AuthResponse> {
-  return post("/auth/login", data);
-}
-
-export function registerUser(data: RegisterData): Promise<AuthResponse> {
-  return post("/auth/register", data);
+export async function loginUser(data: LoginData): Promise<LoginResponse> {
+  const response = await fetch(`${API_BASE}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) return parseError(response);
+  return response.json();
 }
