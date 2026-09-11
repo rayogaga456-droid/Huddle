@@ -32,7 +32,7 @@ const HuddleBoard: React.FC = () => {
     workspace: userWorkspace,
     channels: MOCK_CHANNELS,
     directMessages: MOCK_DMS,
-    activeChannelId: MOCK_CHANNELS[0]?.id ?? '',
+    activeChannelId: '',
     channelStatus: 'loaded',
   });
 
@@ -70,11 +70,13 @@ const HuddleBoard: React.FC = () => {
           activeChannelId: mapped[0].id,
         }));
       })
-      .catch(() => {
-        // Keep mock data if the API is unavailable.
-      });
-  }, []);
-
+     .catch(() => {
+  // API unavailable — fall back to mock data's first channel.
+  setAppState((prev) => ({
+    ...prev,
+    activeChannelId: MOCK_CHANNELS[0]?.id ?? '',
+  }));
+});
   const loadMessages = useCallback(async (channelId: string) => {
     setChannelStatus('loading');
 
