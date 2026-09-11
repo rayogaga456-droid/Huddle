@@ -5,19 +5,34 @@ import {
   initialsFrom,
   formatTimestamp,
 } from '../../types';
-import { WORKSPACE, MOCK_CHANNELS, MOCK_DMS } from '../../data/mockData';
+import { MOCK_CHANNELS, MOCK_DMS } from '../../data/mockData';
 import { getChannels, getMessages, sendMessage } from '../../api/client';
+import { getSession } from '../../services/sessionStore';
 import WorkspaceSwitcher from '../WorkspaceSwitcher/WorkspaceSwitcher';
 import Sidebar from '../Sidebar/Sidebar';
 import ChatPane from '../ChatPane/ChatPane';
 import styles from '../../App.module.css';
 
 const HuddleBoard: React.FC = () => {
+  const session = getSession();
+
+  const displayName =
+    session?.user.name ||
+    session?.user.email?.split('@')[0] ||
+    'You';
+
+  const userWorkspace: AppState['workspace'] = {
+    id: 'user',
+    name: displayName,
+    initials: initialsFrom(displayName),
+    avatarColor: avatarColorFor(session?.user.email || displayName),
+  };
+
   const [appState, setAppState] = useState<AppState>({
-    workspace: WORKSPACE,
+    workspace: userWorkspace,
     channels: MOCK_CHANNELS,
     directMessages: MOCK_DMS,
-    activeChannelId: MOCK_CHANNELS[0].id,
+    activeChannelId: MOCK_CHANNELS[0]?.id ?? '',
     channelStatus: 'loaded',
   });
 
@@ -107,10 +122,14 @@ const HuddleBoard: React.FC = () => {
       (dm) => dm.id === appState.activeChannelId
     );
 
-    if (!isDm) {
+    if (appState.activeChannelId && !isDm) {
       loadMessages(appState.activeChannelId);
     }
-  }, [appState.activeChannelId, appState.directMessages, loadMessages]);
+  }, [
+    appState.activeChannelId,
+    appState.directMessages,
+    loadMessages,
+  ]);
 
   const handleSelectChannel = (id: string) => {
     setAppState((prev) => ({
@@ -126,9 +145,11 @@ const HuddleBoard: React.FC = () => {
 
     const optimistic = {
       id: `local-${Date.now()}`,
-      author: 'You',
-      authorInitials: 'YO',
-      avatarColor: avatarColorFor('you'),
+      author: displayName,
+      authorInitials: initialsFrom(displayName),
+      avatarColor: avatarColorFor(
+        session?.user.email || displayName
+      ),
       timestamp: formatTimestamp(now),
       content: text,
     };
@@ -195,6 +216,10 @@ const HuddleBoard: React.FC = () => {
   const handleRetry = () => {
     loadMessages(appState.activeChannelId);
   };
+
+  if (!activeChannel) {
+    return null;
+  }
 
   return (
     <div className={styles.app}>
