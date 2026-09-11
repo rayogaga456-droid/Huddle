@@ -30,6 +30,13 @@ const BackIcon: React.FC = () => (
   </svg>
 );
 
+const AtIcon: React.FC = () => (
+  <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+    <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.4" />
+    <path d="M11 8v1.5a1.5 1.5 0 0 0 3 0V8a6 6 0 1 0-2.5 4.9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+  </svg>
+);
+
 const ChannelHeader: React.FC<Props> = ({ channel, onInvite, onBack }) => {
   const isChannel = channel.type === 'channel';
 
@@ -41,19 +48,21 @@ const ChannelHeader: React.FC<Props> = ({ channel, onInvite, onBack }) => {
       </button>
       <div className={styles.info}>
         <div className={styles.name}>
-          {isChannel && <HashIcon />}
+          {isChannel ? <HashIcon /> : <AtIcon />}
           <span>{channel.name}</span>
         </div>
-        {channel.memberCount && (
+        {isChannel && channel.memberCount != null && (
           <div className={styles.members}>
             <PeopleIcon />
             <span>{channel.memberCount} members</span>
           </div>
         )}
       </div>
-      <button className={styles.inviteBtn} onClick={onInvite}>
-        Invite
-      </button>
+      {onInvite && (
+        <button className={styles.inviteBtn} onClick={onInvite}>
+          {isChannel ? 'Members' : 'New DM'}
+        </button>
+      )}
     </div>
   );
 };

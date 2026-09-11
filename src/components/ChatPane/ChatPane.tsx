@@ -15,6 +15,7 @@ interface Props {
   hidden?: boolean;
   currentUserName?: string;
   onStartDm?: (authorName: string, authorId?: string) => void;
+  onOpenNewDm?: () => void;
 }
 
 const ChatPane: React.FC<Props> = ({
@@ -26,6 +27,7 @@ const ChatPane: React.FC<Props> = ({
   hidden,
   currentUserName,
   onStartDm,
+  onOpenNewDm,
 }) => {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -56,7 +58,7 @@ const ChatPane: React.FC<Props> = ({
 
   return (
     <div className={`${styles.pane}${hidden ? ` ${styles.hidden}` : ''}`}>
-      <ChannelHeader channel={channel} onBack={onBack} />
+      <ChannelHeader channel={channel} onBack={onBack} onInvite={onOpenNewDm} />
       <div className={styles.body}>{renderBody()}</div>
       <MessageComposer channelName={channel.name} onSend={onSend} />
     </div>

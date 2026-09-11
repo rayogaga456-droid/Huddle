@@ -34,7 +34,7 @@ const MessageBubble: React.FC<Props> = ({ message, currentUserName, onStartDm })
             onClick={handleAuthorClick}
             title={isOtherUser ? `Direct message ${message.author}` : undefined}
           >
-            {message.author}
+            {isOtherUser ? message.author : 'You'}
           </span>
           <span className={styles.timestamp}>{message.timestamp}</span>
           {isOtherUser && onStartDm && (

@@ -2,11 +2,11 @@ export type ChannelStatus = 'loaded' | 'empty' | 'loading' | 'error';
 
 export interface Message {
   id: string;
-  author: string;
+  author: string;       // userName from API or author.name
   authorId?: string;
   authorInitials: string;
   avatarColor: string;
-  timestamp: string;
+  timestamp: string;    // formatted from createdAt
   content: string;
 }
 
@@ -17,6 +17,13 @@ export interface Channel {
   memberCount?: number;
   messages: Message[];
   unreadCount?: number;
+}
+
+export interface Member {
+  id: string;
+  name: string;
+  email?: string;
+  avatarColor?: string;
 }
 
 export interface Workspace {
@@ -35,13 +42,12 @@ export interface AppState {
 }
 
 // Helpers
-export function initialsFrom(name: string): string {
-  return name
-    .split(' ')
-    .map(w => w[0] ?? '')
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+export function initialsFrom(name?: string | null): string {
+  if (!name || typeof name !== 'string') return '??';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '??';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 // Deterministic avatar colour from a user ID/name string
@@ -64,5 +70,3 @@ export function formatTimestamp(isoString: string): string {
   const d = new Date(isoString);
   return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
-
-
