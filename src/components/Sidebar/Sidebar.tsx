@@ -1,60 +1,95 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { Channel, Workspace } from '../../types';
 import styles from './Sidebar.module.css';
 
-interface Props {
+type DirectMessage = {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  status?: 'online' | 'offline' | 'away';
+};
+
+type SidebarProps = {
   workspace: Workspace;
   channels: Channel[];
-  directMessages: Channel[];
-  activeChannelId: string;
-  onSelectChannel: (id: string) => void;
-  onDeleteChannel?: (id: string) => void;
-  onDeleteDm?: (id: string) => void;
+  directMessages: DirectMessage[];
+  activeChannelId: string | null;
+  onSelectChannel: (channelId: string) => void;
+  onDeleteChannel?: (channelId: string) => void;
+  onDeleteDm?: (dmId: string) => void;
   onSignOut?: () => void;
   onOpenNewDm?: () => void;
   onOpenCreateChannel?: () => void;
   hidden?: boolean;
-}
+};
 
 const HashIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-    <path d="M2.5 5.5h9M2.5 8.5h9M5.5 1.5l-1.5 11M10 1.5L8.5 12.5"
-      stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="4" y1="9" x2="20" y2="9" />
+    <line x1="4" y1="15" x2="20" y2="15" />
+    <line x1="10" y1="3" x2="8" y2="21" />
+    <line x1="16" y1="3" x2="14" y2="21" />
   </svg>
 );
 
 const LockIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-    <rect x="2" y="6.5" width="10" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
-    <path d="M4.5 6.5V5a2.5 2.5 0 0 1 5 0v1.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="11" width="18" height="10" rx="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
   </svg>
 );
 
 const PlusIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path d="M7 2.5V11.5M2.5 7H11.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-  </svg>
-);
-
-const TrashIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-    <path d="M2 4h10M5 4V2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5V4M3 4l.8 7.2a1 1 0 0 0 1 .8h4.4a1 1 0 0 0 1-.8L11 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M5.5 6.5v3M8.5 6.5v3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-  </svg>
-);
-const ChevronDown = ({ open }: { open: boolean }) => (
   <svg
-    width="12"
-    height="12"
-    viewBox="0 0 12 12"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
     fill="none"
-    style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
   >
-    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
   </svg>
 );
 
-const Sidebar: React.FC<Props> = ({
+const XIcon = () => (
+  <svg
+    width="10"
+    height="10"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="6" y1="6" x2="18" y2="18" />
+    <line x1="18" y1="6" x2="6" y2="18" />
+  </svg>
+);
+
+export default function Sidebar({
   workspace,
   channels,
   directMessages,
@@ -65,152 +100,224 @@ const Sidebar: React.FC<Props> = ({
   onSignOut,
   onOpenNewDm,
   onOpenCreateChannel,
-  hidden,
-}) => {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  hidden = false,
+}: SidebarProps) {
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const workspaceRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking anywhere outside it
   useEffect(() => {
-    if (!menuOpen) return;
-    const handleOutsideClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        workspaceRef.current &&
+        !workspaceRef.current.contains(event.target as Node)
+      ) {
+        setWorkspaceOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [menuOpen]);
+
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  if (hidden) {
+    return null;
+  }
 
   return (
-    <aside className={`${styles.sidebar}${hidden ? ` ${styles.hidden}` : ''}`}>
-      {/* Workspace name */}
-      <div className={styles.wsName} onClick={() => setMenuOpen(o => !o)}>
-        <span>{workspace.name}</span>
-        <ChevronDown open={menuOpen} />
-      </div>
+    <aside className={styles.sidebar}>
+      <div className={styles.workspaceHeader} ref={workspaceRef}>
+        <button
+          type="button"
+          className={styles.workspaceButton}
+          onClick={() => setWorkspaceOpen((open) => !open)}
+        >
+          <div className={styles.workspaceIcon}>
+            {workspace.name?.charAt(0)?.toUpperCase() || 'H'}
+          </div>
 
-      {/* Workspace dropdown menu */}
-      {menuOpen && (
-        <div className={styles.wsMenu} ref={menuRef}>
-          <button className={styles.wsMenuItem} onClick={() => setMenuOpen(false)}>
-            Settings &amp; administration
-          </button>
-          <div className={styles.wsMenuDivider} />
-          <button
-            className={styles.wsMenuItem}
-            onClick={() => {
-              setMenuOpen(false);
-              if (onSignOut) onSignOut();
-            }}
-          >
-            Sign out of {workspace.name}
-          </button>
-        </div>
-      )}
+          <div className={styles.workspaceInfo}>
+            <span className={styles.workspaceName}>{workspace.name}</span>
+            <span className={styles.workspaceSubtitle}>
+              Workspace
+            </span>
+          </div>
 
-      {/* Channels */}
-      <div className={styles.groupHeader}>
-        <div className={styles.groupLabel}>Channels</div>
-        {onOpenCreateChannel && (
-          <button
-            type="button"
-            className={styles.addDmBtn}
-            onClick={onOpenCreateChannel}
-            title="Create a new channel"
-            aria-label="Create channel"
-          >
-            <PlusIcon />
-          </button>
-        )}
-      </div>
-      <ul className={styles.list}>
-        {channels.map(ch => (
-          <li key={ch.id} className={styles.listItem}>
+          <span className={styles.workspaceChevron}>
+            {workspaceOpen ? '▲' : '▼'}
+          </span>
+        </button>
+
+        {workspaceOpen && (
+          <div className={styles.workspaceMenu}>
             <button
-              className={`${styles.navItem} ${activeChannelId === ch.id ? styles.active : ""}`}
-              onClick={() => { setMenuOpen(false); onSelectChannel(ch.id); }}
+              type="button"
+              className={styles.workspaceMenuItem}
+              onClick={() => {
+                setWorkspaceOpen(false);
+                onSignOut?.();
+              }}
             >
-              <span className={styles.icon}>
-                {ch.name === 'design' ? <LockIcon /> : <HashIcon />}
-              </span>
-              <span className={styles.channelName}>{ch.name}</span>
-              {ch.unreadCount != null && ch.unreadCount > 0 && (
-                <span className={styles.badge}>{ch.unreadCount}</span>
-              )}
+              Sign out
             </button>
-            {onDeleteChannel && (
-              <button
-                className={styles.deleteBtn}
-                title={`Delete #${ch.name}`}
-                aria-label={`Delete channel ${ch.name}`}
-                onClick={e => { e.stopPropagation(); onDeleteChannel(ch.id); }}
-              >
-                <TrashIcon />
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-
-      {/* Direct Messages */}
-      <div className={styles.groupHeader}>
-        <div className={styles.groupLabel}>Direct Messages</div>
-        {onOpenNewDm && (
-          <button
-            type="button"
-            className={styles.addDmBtn}
-            onClick={onOpenNewDm}
-            title="Start a direct message with any signed up member"
-            aria-label="New direct message"
-          >
-            <PlusIcon />
-          </button>
+          </div>
         )}
       </div>
-      <ul className={styles.list}>
-        {directMessages.length === 0 ? (
-          <li style={{ padding: '4px 12px' }}>
-            {onOpenNewDm ? (
+
+      <div className={styles.sidebarContent}>
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <span>Channels</span>
+
+            {onOpenCreateChannel && (
               <button
                 type="button"
-                className={styles.startDmLink}
-                onClick={onOpenNewDm}
+                className={styles.addButton}
+                onClick={onOpenCreateChannel}
+                aria-label="Create channel"
+                title="Create channel"
               >
-                + Message a member
+                <PlusIcon />
               </button>
-            ) : (
-              <span style={{ fontSize: '11.5px', color: 'rgba(255,255,255,0.45)' }}>
-                Click any member in chat to message them
-              </span>
             )}
-          </li>
-        ) : (
-          directMessages.map(dm => (
-            <li key={dm.id} className={styles.listItem}>
+          </div>
+
+          <div className={styles.channelList}>
+            {channels.length === 0 ? (
+              <div className={styles.emptyState}>No channels yet</div>
+            ) : (
+              channels.map((channel) => {
+                const isActive = activeChannelId === channel.id;
+
+                return (
+                  <div
+                    key={channel.id}
+                    className={`${styles.channelRow} ${
+                      isActive ? styles.active : ''
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      className={styles.channelButton}
+                      onClick={() => onSelectChannel(channel.id)}
+                    >
+                      <span className={styles.channelIcon}>
+                        {channel.isPrivate ? <LockIcon /> : <HashIcon />}
+                      </span>
+
+                      <span className={styles.channelName}>
+                        {channel.name}
+                      </span>
+                    </button>
+
+                    {onDeleteChannel && (
+                      <button
+                        type="button"
+                        className={styles.deleteButton}
+                        onClick={(event) => {
+                          event.stopPropagation();
+
+                          if (
+                            window.confirm(
+                              `Delete #${channel.name}? This cannot be undone.`
+                            )
+                          ) {
+                            onDeleteChannel(channel.id);
+                          }
+                        }}
+                        aria-label={`Delete ${channel.name}`}
+                        title="Delete channel"
+                      >
+                        <XIcon />
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <span>Direct Messages</span>
+
+            {onOpenNewDm && (
               <button
-                className={`${styles.navItem} ${activeChannelId === dm.id ? styles.active : ''}`}
-                onClick={() => { setMenuOpen(false); onSelectChannel(dm.id); }}
+                type="button"
+                className={styles.addButton}
+                onClick={onOpenNewDm}
+                aria-label="New direct message"
+                title="New direct message"
               >
-                <span className={styles.dmDot} />
-                <span className={styles.channelName}>{dm.name}</span>
+                <PlusIcon />
               </button>
-              {onDeleteDm && (
-                <button
-                  className={styles.deleteBtn}
-                  title={`Close DM with ${dm.name}`}
-                  aria-label={`Delete DM with ${dm.name}`}
-                  onClick={e => { e.stopPropagation(); onDeleteDm(dm.id); }}
-                >
-                  <TrashIcon />
-                </button>
-              )}
-            </li>
-          ))
-        )}
-      </ul>
+            )}
+          </div>
+
+          <div className={styles.dmList}>
+            {directMessages.length === 0 ? (
+              <div className={styles.emptyState}>No direct messages</div>
+            ) : (
+              directMessages.map((dm) => (
+                <div key={dm.id} className={styles.dmRow}>
+                  <button
+                    type="button"
+                    className={styles.dmButton}
+                    onClick={() => onSelectChannel(dm.id)}
+                  >
+                    <div className={styles.avatar}>
+                      {dm.avatarUrl ? (
+                        <img
+                          src={dm.avatarUrl}
+                          alt={dm.name}
+                          className={styles.avatarImage}
+                        />
+                      ) : (
+                        dm.name?.charAt(0)?.toUpperCase() || '?'
+                      )}
+
+                      {dm.status && (
+                        <span
+                          className={`${styles.statusDot} ${
+                            styles[dm.status]
+                          }`}
+                        />
+                      )}
+                    </div>
+
+                    <span className={styles.dmName}>{dm.name}</span>
+                  </button>
+
+                  {onDeleteDm && (
+                    <button
+                      type="button"
+                      className={styles.deleteButton}
+                      onClick={(event) => {
+                        event.stopPropagation();
+
+                        if (
+                          window.confirm(
+                            `Delete your conversation with ${dm.name}?`
+                          )
+                        ) {
+                          onDeleteDm(dm.id);
+                        }
+                      }}
+                      aria-label={`Delete conversation with ${dm.name}`}
+                      title="Delete conversation"
+                    >
+                      <XIcon />
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      </div>
     </aside>
   );
-};
-
-export default Sidebar;
+}

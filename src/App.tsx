@@ -24,6 +24,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return Boolean(getSession());
   });
+
   const [mode, setMode] = useState<Mode>("register");
   const [accountCreated, setAccountCreated] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -529,12 +530,11 @@ function App() {
                   </button>
                 </div>
 
-                {isRegister &&
-                  !fieldErrors.password && (
-                    <div className="hint">
-                      Use 8+ characters with at least one letter and one number.
-                    </div>
-                  )}
+                {isRegister && !fieldErrors.password && (
+                  <div className="hint">
+                    Use 8+ characters with at least one letter and one number.
+                  </div>
+                )}
 
                 {fieldErrors.password && (
                   <div className="hint error">

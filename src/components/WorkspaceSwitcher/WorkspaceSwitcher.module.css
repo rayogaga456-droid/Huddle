@@ -49,6 +49,21 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
+/* First-name label below the chip */
+.wsName {
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.03em;
+  text-align: center;
+  max-width: 52px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+  user-select: none;
+}
+
 @media (max-width: 768px) {
   .switcher {
     display: none;
