@@ -83,9 +83,9 @@ const HuddleBoard: React.FC = () => {
 
       const mapped = messages.map((message) => ({
         id: message.id,
-        author: message.userName,
-        authorInitials: initialsFrom(message.userName),
-        avatarColor: avatarColorFor(message.userId),
+        author: (message.author.name ?? message.author.email ?? 'Unknown'),
+        authorInitials: initialsFrom((message.author.name ?? message.author.email ?? 'Unknown')),
+        avatarColor: avatarColorFor(message.author.id),
         timestamp: formatTimestamp(message.createdAt),
         content: message.content,
       }));
@@ -186,9 +186,9 @@ const HuddleBoard: React.FC = () => {
 
       const real = {
         id: saved.id,
-        author: saved.userName,
-        authorInitials: initialsFrom(saved.userName),
-        avatarColor: avatarColorFor(saved.userId),
+        author: (saved.author.name ?? saved.author.email ?? 'Unknown'),
+        authorInitials: initialsFrom((saved.author.name ?? saved.author.email ?? 'Unknown')),
+        avatarColor: avatarColorFor(saved.author.id),
         timestamp: formatTimestamp(saved.createdAt),
         content: saved.content,
       };
