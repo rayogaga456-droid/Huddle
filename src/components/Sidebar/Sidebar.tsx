@@ -8,6 +8,7 @@ interface Props {
   directMessages: Channel[];
   activeChannelId: string;
   onSelectChannel: (id: string) => void;
+  onSignOut?: () => void;
   hidden?: boolean;
 }
 
@@ -43,6 +44,7 @@ const Sidebar: React.FC<Props> = ({
   directMessages,
   activeChannelId,
   onSelectChannel,
+  onSignOut,
   hidden,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -59,13 +61,16 @@ const Sidebar: React.FC<Props> = ({
       {menuOpen && (
         <div className={styles.wsMenu}>
           <button className={styles.wsMenuItem} onClick={() => setMenuOpen(false)}>
-            Invite people
-          </button>
-          <button className={styles.wsMenuItem} onClick={() => setMenuOpen(false)}>
             Settings &amp; administration
           </button>
           <div className={styles.wsMenuDivider} />
-          <button className={styles.wsMenuItem} onClick={() => setMenuOpen(false)}>
+          <button
+            className={styles.wsMenuItem}
+            onClick={() => {
+              setMenuOpen(false);
+              if (onSignOut) onSignOut();
+            }}
+          >
             Sign out of {workspace.name}
           </button>
         </div>
@@ -95,17 +100,23 @@ const Sidebar: React.FC<Props> = ({
       {/* Direct Messages */}
       <div className={styles.groupLabel}>Direct Messages</div>
       <ul className={styles.list}>
-        {directMessages.map(dm => (
-          <li key={dm.id}>
-            <button
-              className={`${styles.navItem} ${activeChannelId === dm.id ? styles.active : ''}`}
-              onClick={() => onSelectChannel(dm.id)}
-            >
-              <span className={styles.dmDot} />
-              <span className={styles.channelName}>{dm.name}</span>
-            </button>
+        {directMessages.length === 0 ? (
+          <li style={{ padding: '6px 14px', fontSize: '11.5px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.4 }}>
+            Click any member's name in chat to direct message them
           </li>
-        ))}
+        ) : (
+          directMessages.map(dm => (
+            <li key={dm.id}>
+              <button
+                className={`${styles.navItem} ${activeChannelId === dm.id ? styles.active : ''}`}
+                onClick={() => onSelectChannel(dm.id)}
+              >
+                <span className={styles.dmDot} />
+                <span className={styles.channelName}>{dm.name}</span>
+              </button>
+            </li>
+          ))
+        )}
       </ul>
     </aside>
   );

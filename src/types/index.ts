@@ -2,10 +2,11 @@ export type ChannelStatus = 'loaded' | 'empty' | 'loading' | 'error';
 
 export interface Message {
   id: string;
-  author: string;       // userName from API
+  author: string;
+  authorId?: string;
   authorInitials: string;
   avatarColor: string;
-  timestamp: string;    // formatted from createdAt
+  timestamp: string;
   content: string;
 }
 
@@ -63,3 +64,5 @@ export function formatTimestamp(isoString: string): string {
   const d = new Date(isoString);
   return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
+
+
