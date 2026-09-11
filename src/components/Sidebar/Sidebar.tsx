@@ -42,7 +42,6 @@ const TrashIcon = () => (
     <path d="M5.5 6.5v3M8.5 6.5v3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
   </svg>
 );
-
 const ChevronDown = ({ open }: { open: boolean }) => (
   <svg
     width="12"

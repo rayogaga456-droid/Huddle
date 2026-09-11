@@ -1,0 +1,57 @@
+diff --git a/src/components/MessageBubble/MessageBubble.tsx b/src/components/MessageBubble/MessageBubble.tsx
+index bd79863..6a2680f 100644
+--- a/src/components/MessageBubble/MessageBubble.tsx
++++ b/src/components/MessageBubble/MessageBubble.tsx
+@@ -4,18 +4,49 @@ import styles from './MessageBubble.module.css';
+ 
+ interface Props {
+   message: Message;
++  currentUserName?: string;
++  onStartDm?: (authorName: string, authorId?: string) => void;
+ }
+ 
+-const MessageBubble: React.FC<Props> = ({ message }) => {
++const MessageBubble: React.FC<Props> = ({ message, currentUserName, onStartDm }) => {
++  const isOtherUser = currentUserName && message.author.toLowerCase() !== currentUserName.toLowerCase();
++
++  const handleAuthorClick = () => {
++    if (isOtherUser && onStartDm) {
++      onStartDm(message.author, message.authorId);
++    }
++  };
++
+   return (
+     <div className={styles.bubble}>
+-      <div className={styles.avatar} style={{ backgroundColor: message.avatarColor }}>
++      <div
++        className={`${styles.avatar}${isOtherUser && onStartDm ? ` ${styles.avatarClickable}` : ''}`}
++        style={{ backgroundColor: message.avatarColor }}
++        onClick={handleAuthorClick}
++        title={isOtherUser ? `Direct message ${message.author}` : undefined}
++      >
+         {message.authorInitials}
+       </div>
+       <div className={styles.content}>
+         <div className={styles.meta}>
+-          <span className={styles.author}>{message.author}</span>
++          <span
++            className={`${styles.author}${isOtherUser && onStartDm ? ` ${styles.authorClickable}` : ''}`}
++            onClick={handleAuthorClick}
++            title={isOtherUser ? `Direct message ${message.author}` : undefined}
++          >
++            {message.author}
++          </span>
+           <span className={styles.timestamp}>{message.timestamp}</span>
++          {isOtherUser && onStartDm && (
++            <button
++              type="button"
++              className={styles.dmActionBtn}
++              onClick={handleAuthorClick}
++              title={`Direct message ${message.author}`}
++            >
++              Direct message
++            </button>
++          )}
+         </div>
+         <p className={styles.text}>{message.content}</p>
+       </div>

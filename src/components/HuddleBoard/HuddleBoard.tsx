@@ -32,7 +32,7 @@ const HuddleBoard: React.FC = () => {
     workspace: userWorkspace,
     channels: MOCK_CHANNELS,
     directMessages: MOCK_DMS,
-    activeChannelId: MOCK_CHANNELS[0]?.id ?? '',
+    activeChannelId: '',
     channelStatus: 'loaded',
   });
 
@@ -71,7 +71,11 @@ const HuddleBoard: React.FC = () => {
         }));
       })
       .catch(() => {
-        // Keep mock data if the API is unavailable.
+        // API unavailable — fall back to mock data's first channel.
+        setAppState((prev) => ({
+          ...prev,
+          activeChannelId: MOCK_CHANNELS[0]?.id ?? '',
+        }));
       });
   }, []);
 
@@ -251,5 +255,3 @@ const HuddleBoard: React.FC = () => {
 };
 
 export default HuddleBoard;
-
-

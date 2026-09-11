@@ -1,0 +1,40 @@
+diff --git a/src/components/ChatPane/ChatPane.tsx b/src/components/ChatPane/ChatPane.tsx
+index 3928288..b60eacb 100644
+--- a/src/components/ChatPane/ChatPane.tsx
++++ b/src/components/ChatPane/ChatPane.tsx
+@@ -13,9 +13,20 @@ interface Props {
+   onRetry: () => void;
+   onBack?: () => void;
+   hidden?: boolean;
++  currentUserName?: string;
++  onStartDm?: (authorName: string, authorId?: string) => void;
+ }
+ 
+-const ChatPane: React.FC<Props> = ({ channel, status, onSend, onRetry, onBack, hidden }) => {
++const ChatPane: React.FC<Props> = ({
++  channel,
++  status,
++  onSend,
++  onRetry,
++  onBack,
++  hidden,
++  currentUserName,
++  onStartDm,
++}) => {
+   const bottomRef = useRef<HTMLDivElement>(null);
+ 
+   useEffect(() => {
+@@ -31,7 +42,12 @@ const ChatPane: React.FC<Props> = ({ channel, status, onSend, onRetry, onBack, h
+     return (
+       <div className={styles.messages}>
+         {channel.messages.map((msg: Message) => (
+-          <MessageBubble key={msg.id} message={msg} />
++          <MessageBubble
++            key={msg.id}
++            message={msg}
++            currentUserName={currentUserName}
++            onStartDm={onStartDm}
++          />
+         ))}
+         <div ref={bottomRef} />
+       </div>
