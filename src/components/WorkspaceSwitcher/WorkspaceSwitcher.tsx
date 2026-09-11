@@ -23,10 +23,6 @@ const WorkspaceSwitcher: React.FC<Props> = ({ workspace }) => {
       <div className={styles.wsChip} title={workspace.name}>
         {workspace.initials}
       </div>
-      {/* User's display name */}
-      <span className={styles.wsName} title={workspace.name}>
-        {workspace.name.split(' ')[0]}
-      </span>
     </div>
   );
 };
