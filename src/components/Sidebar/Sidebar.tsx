@@ -9,6 +9,8 @@ interface Props {
   activeChannelId: string;
   onSelectChannel: (id: string) => void;
   onSignOut?: () => void;
+  onOpenNewDm?: () => void;
+  onOpenCreateChannel?: () => void;
   hidden?: boolean;
 }
 
@@ -23,6 +25,12 @@ const LockIcon = () => (
   <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
     <rect x="2" y="6.5" width="10" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
     <path d="M4.5 6.5V5a2.5 2.5 0 0 1 5 0v1.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+    <path d="M7 2.5V11.5M2.5 7H11.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
   </svg>
 );
 
@@ -45,6 +53,8 @@ const Sidebar: React.FC<Props> = ({
   activeChannelId,
   onSelectChannel,
   onSignOut,
+  onOpenNewDm,
+  onOpenCreateChannel,
   hidden,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -77,7 +87,20 @@ const Sidebar: React.FC<Props> = ({
       )}
 
       {/* Channels */}
-      <div className={styles.groupLabel}>Channels</div>
+      <div className={styles.groupHeader}>
+        <div className={styles.groupLabel}>Channels</div>
+        {onOpenCreateChannel && (
+          <button
+            type="button"
+            className={styles.addDmBtn}
+            onClick={onOpenCreateChannel}
+            title="Create a new channel"
+            aria-label="Create channel"
+          >
+            <PlusIcon />
+          </button>
+        )}
+      </div>
       <ul className={styles.list}>
         {channels.map(ch => (
           <li key={ch.id}>
@@ -98,11 +121,36 @@ const Sidebar: React.FC<Props> = ({
       </ul>
 
       {/* Direct Messages */}
-      <div className={styles.groupLabel}>Direct Messages</div>
+      <div className={styles.groupHeader}>
+        <div className={styles.groupLabel}>Direct Messages</div>
+        {onOpenNewDm && (
+          <button
+            type="button"
+            className={styles.addDmBtn}
+            onClick={onOpenNewDm}
+            title="Start a direct message with any signed up member"
+            aria-label="New direct message"
+          >
+            <PlusIcon />
+          </button>
+        )}
+      </div>
       <ul className={styles.list}>
         {directMessages.length === 0 ? (
-          <li style={{ padding: '6px 14px', fontSize: '11.5px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.4 }}>
-            Click any member's name in chat to direct message them
+          <li style={{ padding: '4px 12px' }}>
+            {onOpenNewDm ? (
+              <button
+                type="button"
+                className={styles.startDmLink}
+                onClick={onOpenNewDm}
+              >
+                + Message a member
+              </button>
+            ) : (
+              <span style={{ fontSize: '11.5px', color: 'rgba(255,255,255,0.45)' }}>
+                Click any member in chat to message them
+              </span>
+            )}
           </li>
         ) : (
           directMessages.map(dm => (

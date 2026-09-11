@@ -7,7 +7,7 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://huddle-backend-fdnr.onrender.com/api';
 
 function getToken(): string | null {
-  return localStorage.getItem('huddle_access_token');
+  return localStorage.getItem('huddle_token');
 }
 
 function authHeaders(): HeadersInit {
@@ -92,6 +92,19 @@ export async function getChannels(): Promise<ChannelsResponse> {
   return handleResponse<ChannelsResponse>(res);
 }
 
+export async function createChannel(name: string): Promise<ApiChannel> {
+  const res = await fetch(`${BASE_URL}/channels`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ name }),
+  });
+  const data = await handleResponse<{ channel?: ApiChannel } | ApiChannel>(res);
+  if (data && typeof data === 'object' && 'channel' in data && data.channel) {
+    return data.channel;
+  }
+  return data as ApiChannel;
+}
+
 // ─── Messages ────────────────────────────────────────
 
 export interface ApiAuthor {
@@ -104,11 +117,19 @@ export interface ApiMessage {
   id: string;
   content: string;
   createdAt: string;
-  author: ApiAuthor;
+  author?: ApiAuthor;
+  userId?: string;
+  userName?: string;
+  channelId?: string;
 }
 
 export interface MessagesResponse {
+  channel?: ApiChannel;
   messages: ApiMessage[];
+}
+
+export interface SendMessageResponse {
+  message: ApiMessage;
 }
 
 export async function getMessages(channelId: string): Promise<MessagesResponse> {
@@ -117,6 +138,7 @@ export async function getMessages(channelId: string): Promise<MessagesResponse> 
   });
   return handleResponse<MessagesResponse>(res);
 }
+
 export async function sendMessage(
   channelId: string,
   content: string,
@@ -126,8 +148,9 @@ export async function sendMessage(
     headers: authHeaders(),
     body: JSON.stringify({ content }),
   });
-
-  const data = await handleResponse<{ message: ApiMessage }>(res);
-
-  return data.message;
+  const data = await handleResponse<SendMessageResponse | ApiMessage>(res);
+  if (data && typeof data === 'object' && 'message' in data && (data as SendMessageResponse).message) {
+    return (data as SendMessageResponse).message;
+  }
+  return data as ApiMessage;
 }
