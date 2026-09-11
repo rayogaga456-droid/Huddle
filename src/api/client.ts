@@ -7,7 +7,7 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://huddle-backend-fdnr.onrender.com/api';
 
 function getToken(): string | null {
-  return localStorage.getItem('huddle_token');
+  return localStorage.getItem('huddle_access_token');
 }
 
 function authHeaders(): HeadersInit {
