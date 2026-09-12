@@ -70,3 +70,13 @@ export function formatTimestamp(isoString: string): string {
   const d = new Date(isoString);
   return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
+
+export function canonicalDmId(userA: string, userB: string): string {
+  const a = String(userA ?? '').trim();
+  const b = String(userB ?? '').trim();
+  if (!a && !b) return 'dm:anon';
+  if (!a) return `dm:${b}`;
+  if (!b) return `dm:${a}`;
+  const [first, second] = [a, b].sort((left, right) => left.localeCompare(right));
+  return `dm:${first}:${second}`;
+}

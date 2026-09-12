@@ -88,7 +88,18 @@ const resolvedName  = localStorage.getItem('huddle_user_name') ?? '';
 const resolvedEmail = localStorage.getItem('huddle_user_email') ?? '';
 const displayName = resolvedName || resolvedEmail.split('@')[0] || 'You';
 
-const DM_STORAGE_KEY = `huddle_dms_${resolvedEmail || resolvedName || 'guest'}`;
+const USER_ID_KEY = 'huddle_user_id';
+
+function getCurrentUserId(): string {
+  const session = getSession();
+  if (session?.user?.id) return session.user.id;
+  const storedId = localStorage.getItem(USER_ID_KEY);
+  if (storedId) return storedId;
+  return resolvedEmail || resolvedName || 'guest';
+}
+
+const currentUserId = getCurrentUserId();
+const DM_STORAGE_KEY = `huddle_dms_${currentUserId || 'guest'}`;
 const CUSTOM_CHANNELS_KEY = `huddle_custom_channels`;
 
 function loadSavedDms(): Channel[] {
@@ -198,6 +209,15 @@ function AuthScreen() {
   const [formError, setFormError] = useState('');
   const [accountCreated, setAccountCreated] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [recoveryView, setRecoveryView] = useState<'login' | 'request' | 'check-email' | 'reset' | 'success'>('login');
+  const [recoveryEmail, setRecoveryEmail] = useState(email.trim());
+  const [recoveryError, setRecoveryError] = useState('');
+  const [recoverySuccess, setRecoverySuccess] = useState('');
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [resetToken, setResetToken] = useState(() => new URLSearchParams(window.location.search).get('token') ?? '');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetError, setResetError] = useState('');
 
   const isRegister = mode === 'register';
   const isFormValid = isRegister
@@ -214,6 +234,12 @@ function AuthScreen() {
     setFieldErrors({});
     setFormError('');
     setLoading(false);
+    setRecoveryView('login');
+    setRecoveryError('');
+    setRecoverySuccess('');
+    setResetError('');
+    setNewPassword('');
+    setConfirmPassword('');
   };
 
   const validate = () => {
@@ -270,6 +296,7 @@ function AuthScreen() {
 
       saveSession(session);
       localStorage.setItem('huddle_token', session.accessToken);
+      localStorage.setItem(USER_ID_KEY, session.user.id ?? session.user.email);
       if (session.user.name) localStorage.setItem('huddle_user_name', session.user.name);
       if (session.user.email) localStorage.setItem('huddle_user_email', session.user.email);
       window.location.reload();
@@ -289,162 +316,331 @@ function AuthScreen() {
     }
   };
 
-  return (
-    <div className="auth-screen">
-      <div className="auth-form-col">
-        {accountCreated ? (
-          <div style={{ textAlign: 'center' }}>
-            <div
-              style={{
-                width: 60,
-                height: 60,
-                borderRadius: '50%',
-                background: '#e9f8f1',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 22px',
-              }}
-            >
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
-                <path d="M5 12.5L9.5 17L19 7" stroke="#18a875" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+  const handleForgotPassword = async () => {
+    const targetEmail = email.trim();
+    if (!targetEmail || !EMAIL_RE.test(targetEmail)) {
+      setRecoveryError('Enter a valid email address to receive a reset link.');
+      setRecoveryView('request');
+      return;
+    }
+
+    setRecoveryEmail(targetEmail);
+    setRecoveryError('');
+    setRecoverySuccess('');
+    setIsRecovering(true);
+
+    try {
+      await import('./api/client').then(({ forgotPassword }) => forgotPassword(targetEmail));
+      setRecoveryView('check-email');
+      setRecoverySuccess(`Check your email`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'We could not send the reset link right now.';
+      setRecoveryError(message);
+      setRecoveryView('request');
+    } finally {
+      setIsRecovering(false);
+    }
+  };
+
+  const handleResendRecoveryEmail = async () => {
+    setRecoveryError('');
+    setRecoverySuccess('');
+    setIsRecovering(true);
+
+    try {
+      await import('./api/client').then(({ forgotPassword }) => forgotPassword(recoveryEmail || email.trim()));
+      setRecoveryView('check-email');
+      setRecoverySuccess('Check your email');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'We could not resend the reset link.';
+      setRecoveryError(message);
+    } finally {
+      setIsRecovering(false);
+    }
+  };
+
+  const handleResetPassword = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setResetError('');
+
+    if (!newPassword || !confirmPassword) {
+      setResetError('Both password fields are required.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setResetError('Use at least 8 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setResetError('Passwords do not match.');
+      return;
+    }
+    if (!resetToken) {
+      setResetError('This reset link is missing a valid token.');
+      return;
+    }
+
+    setIsRecovering(true);
+
+    try {
+      await import('./api/client').then(({ resetPassword }) => resetPassword(resetToken, newPassword, confirmPassword));
+      setRecoveryView('success');
+      setNewPassword('');
+      setConfirmPassword('');
+      setResetError('');
+      const clean = window.location.pathname;
+      window.history.replaceState({}, '', clean);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'We could not update your password.';
+      setResetError(message);
+    } finally {
+      setIsRecovering(false);
+    }
+  };
+
+  const renderRecoveryScreen = () => {
+    const recoveryBrand = (
+      <div className="recovery-brand" aria-label="Huddle home">
+        <div className="recovery-mark">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20H6L4 22V12Z" fill="white" />
+          </svg>
+        </div>
+        <span>huddle</span>
+      </div>
+    );
+
+    if (recoveryView === 'request') {
+      return (
+        <div className="recovery-page">
+          <div className="recovery-panel">
+            {recoveryBrand}
+            <h2>Forgot your password?</h2>
+            <p className="recovery-subtitle">Enter your email below and we’ll send you a reset link to regain access to your account.</p>
+            {recoveryError && <div className="top-alert">{recoveryError}</div>}
+            <div className="field recovery-field">
+              <label htmlFor="recoveryEmail">Email</label>
+              <input
+                id="recoveryEmail"
+                className={`input ${recoveryError ? 'error' : ''}`}
+                value={recoveryEmail || email}
+                onChange={(event) => setRecoveryEmail(event.target.value)}
+                disabled={isRecovering}
+                placeholder="you@company.com"
+              />
             </div>
-            <h2 style={{ marginBottom: 10 }}>Account created</h2>
-            <div className="sub" style={{ marginBottom: 28 }}>Sign in with your new account to continue.</div>
-            <button type="button" className="btn btn-primary" onClick={() => switchMode('login')}>
-              Go to sign in
+            <button type="button" className="btn btn-primary btn-block" onClick={handleForgotPassword} disabled={isRecovering}>
+              {isRecovering ? 'Sending...' : 'Send reset link'}
+            </button>
+            <button type="button" className="recovery-link" onClick={() => { setRecoveryView('login'); setRecoveryError(''); setRecoverySuccess(''); }}>
+              Back to sign in
             </button>
           </div>
-        ) : (
-          <>
-            <div className="mini-brand">
-              <div className="mark">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20H6L4 22V12Z"
-                    fill="white"
-                  />
-                </svg>
-              </div>
-              <span>huddle</span>
+        </div>
+      );
+    }
+
+    if (recoveryView === 'check-email') {
+      return (
+        <div className="recovery-page">
+          <div className="recovery-panel recovery-panel-center">
+            {recoveryBrand}
+            <div className="recovery-checkmark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M5 12.5L9.5 17L19 7" stroke="#2e9e6d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </div>
+            <h2>Check your email</h2>
+            <p className="recovery-subtitle centered">A password reset link has been sent to <strong>{recoveryEmail || email}</strong>. The link expires shortly for security.</p>
+            {recoveryError && <div className="top-alert">{recoveryError}</div>}
+            {recoverySuccess && <div className="top-success">{recoverySuccess}</div>}
+            <div className="recovery-actions">
+              <button type="button" className="btn btn-primary btn-block" onClick={() => {
+                setResetToken(new URLSearchParams(window.location.search).get('token') ?? '');
+                setRecoveryView('reset');
+              }}>
+                Open reset screen
+              </button>
+              <button type="button" className="btn btn-secondary btn-block" onClick={handleResendRecoveryEmail} disabled={isRecovering}>
+                {isRecovering ? 'Sending...' : 'Resend email'}
+              </button>
+            </div>
+            <button type="button" className="recovery-link" onClick={() => { setRecoveryView('login'); setRecoveryError(''); setRecoverySuccess(''); }}>
+              Back to sign in
+            </button>
+          </div>
+        </div>
+      );
+    }
 
-            <h2>{isRegister ? 'Create your account' : 'Welcome back'}</h2>
-            <div className="sub">{isRegister ? 'Takes about a minute.' : 'Sign in to jump into your channels.'}</div>
-
-            {formError && <div className="top-alert">{formError}</div>}
-
-            <form onSubmit={handleSubmit} noValidate>
-              {isRegister && (
-                <div className="field">
-                  <label htmlFor="fullName">Full name <span className="req">*</span></label>
-                  <input
-                    id="fullName"
-                    className={`input ${fieldErrors.fullName ? 'error' : ''}`}
-                    placeholder="Maya Chen"
-                    value={fullName}
-                    disabled={loading}
-                    onChange={(event) => setFullName(event.target.value)}
-                  />
-                  {fieldErrors.fullName && <div className="hint error">{fieldErrors.fullName}</div>}
-                </div>
-              )}
-
-              <div className="field">
-                <label htmlFor="email">Email {isRegister && <span className="req">*</span>}</label>
-                <input
-                  id="email"
-                  className={`input ${fieldErrors.email ? 'error' : ''}`}
-                  placeholder="you@company.com"
-                  value={email}
-                  disabled={loading}
-                  onChange={(event) => setEmail(event.target.value)}
-                />
-                {fieldErrors.email && <div className="hint error">{fieldErrors.email}</div>}
+    if (recoveryView === 'reset') {
+      return (
+        <div className="recovery-page">
+          <div className="recovery-panel">
+            {recoveryBrand}
+            <h2>Reset your password</h2>
+            <p className="recovery-subtitle">Create a new password for your account.</p>
+            {resetError && <div className="top-alert">{resetError}</div>}
+            <form onSubmit={handleResetPassword} noValidate>
+              <div className="field recovery-field">
+                <label htmlFor="newPassword">New password</label>
+                <input id="newPassword" type="password" className={`input ${resetError ? 'error' : ''}`} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} disabled={isRecovering} placeholder="New password" />
               </div>
-
-              <div className="field">
-                <label htmlFor="password">Password {isRegister && <span className="req">*</span>}</label>
-                <input
-                  id="password"
-                  type="password"
-                  className={`input ${fieldErrors.password ? 'error' : ''}`}
-                  placeholder={isRegister ? 'At least 8 characters' : 'Password'}
-                  value={password}
-                  disabled={loading}
-                  onChange={(event) => setPassword(event.target.value)}
-                />
-                {isRegister && !fieldErrors.password && (
-                  <div className="hint">Use 8+ characters with at least one letter and one number.</div>
-                )}
-                {fieldErrors.password && <div className="hint error">{fieldErrors.password}</div>}
+              <div className="field recovery-field">
+                <label htmlFor="confirmPassword">Confirm password</label>
+                <input id="confirmPassword" type="password" className={`input ${resetError ? 'error' : ''}`} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} disabled={isRecovering} placeholder="Confirm password" />
               </div>
-
-              {isRegister && (
-                <div className="field checkbox-row" style={{ marginBottom: 20 }}>
-                  <input
-                    type="checkbox"
-                    id="terms"
-                    checked={termsAccepted}
-                    disabled={loading}
-                    onChange={(event) => setTermsAccepted(event.target.checked)}
-                  />
-                  <label htmlFor="terms">I agree to Terms and Privacy Policy</label>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className={`btn btn-primary btn-block ${loading || !isFormValid ? 'disabled' : ''}`}
-                disabled={loading || !isFormValid}
-              >
-                {loading && <span className="spinner" />}
-                {loading ? (isRegister ? 'Creating account...' : 'Signing in...') : (isRegister ? 'Create account' : 'Sign in')}
+              <button type="submit" className="btn btn-primary btn-block" disabled={isRecovering}>
+                {isRecovering ? 'Updating...' : 'Update password'}
               </button>
             </form>
-
-            <div className="auth-switch">
-              {isRegister ? (
-                <>Already have an account? <button type="button" onClick={() => switchMode('login')}>Log in</button></>
-              ) : (
-                <>Need an account? <button type="button" onClick={() => switchMode('register')}>Sign up</button></>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-
-      <div className="auth-illustration">
-        <div className="illus-hero">
-          <h3>{isRegister ? 'One place for the whole team to talk.' : 'Pick up right where you left off.'}</h3>
-          <p>{isRegister ? 'Channels for topics, not endless email threads.' : 'Every channel and message, right where you expect it.'}</p>
-        </div>
-        <div className="illus-card">
-          <div className="msg-row">
-            <div className="msg-avatar" style={{ background: 'var(--brand-500)' }}>JT</div>
-            <div className="msg-content">
-              <div className="msg-top">
-                <span className="msg-name">Jordan Tate</span>
-                <span className="msg-time">10:14 AM</span>
-              </div>
-              <div className="msg-text">Pushed the auth API. Ready to wire up whenever.</div>
-            </div>
-          </div>
-          <div className="msg-row">
-            <div className="msg-avatar" style={{ background: 'var(--brand-400)' }}>MC</div>
-            <div className="msg-content">
-              <div className="msg-top">
-                <span className="msg-name">Maya Chen</span>
-                <span className="msg-time">10:16 AM</span>
-              </div>
-              <div className="msg-text">Nice. Pulling it into the login screen now.</div>
-            </div>
+            <button type="button" className="recovery-link" onClick={() => { setRecoveryView('login'); setResetError(''); setNewPassword(''); setConfirmPassword(''); }}>
+              Back to sign in
+            </button>
           </div>
         </div>
+      );
+    }
+
+    if (recoveryView === 'success') {
+      return (
+        <div className="recovery-page">
+          <div className="recovery-panel recovery-panel-center">
+            {recoveryBrand}
+            <div className="recovery-checkmark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M5 12.5L9.5 17L19 7" stroke="#2e9e6d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <h2>Password updated</h2>
+            <p className="recovery-subtitle centered">Your password was successfully changed. You can now sign in with your new password.</p>
+            <button type="button" className="btn btn-primary btn-block" onClick={() => { setRecoveryView('login'); setMode('login'); setEmail(''); setPassword(''); setRecoveryError(''); setRecoverySuccess(''); setResetError(''); }}>
+              Return to sign in
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="auth-screen">
+        <div className="auth-form-col">
+          {accountCreated ? (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#e9f8f1', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 22px' }}>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 12.5L9.5 17L19 7" stroke="#18a875" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <h2 style={{ marginBottom: 10 }}>Account created</h2>
+              <div className="sub" style={{ marginBottom: 28 }}>Sign in with your new account to continue.</div>
+              <button type="button" className="btn btn-primary" onClick={() => switchMode('login')}>
+                Go to sign in
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="mini-brand">
+                <div className="mark">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20H6L4 22V12Z" fill="white" />
+                  </svg>
+                </div>
+                <span>huddle</span>
+              </div>
+
+              <h2>{isRegister ? 'Create your account' : 'Welcome back'}</h2>
+              <div className="sub">{isRegister ? 'Takes about a minute.' : 'Sign in to jump into your channels.'}</div>
+
+              {formError && <div className="top-alert">{formError}</div>}
+
+              <form onSubmit={handleSubmit} noValidate>
+                {isRegister && (
+                  <div className="field">
+                    <label htmlFor="fullName">Full name <span className="req">*</span></label>
+                    <input id="fullName" className={`input ${fieldErrors.fullName ? 'error' : ''}`} placeholder="Maya Chen" value={fullName} disabled={loading} onChange={(event) => setFullName(event.target.value)} />
+                    {fieldErrors.fullName && <div className="hint error">{fieldErrors.fullName}</div>}
+                  </div>
+                )}
+
+                <div className="field">
+                  <label htmlFor="email">Email {isRegister && <span className="req">*</span>}</label>
+                  <input id="email" className={`input ${fieldErrors.email ? 'error' : ''}`} placeholder="you@company.com" value={email} disabled={loading} onChange={(event) => setEmail(event.target.value)} />
+                  {fieldErrors.email && <div className="hint error">{fieldErrors.email}</div>}
+                </div>
+
+                <div className="field">
+                  <label htmlFor="password">Password {isRegister && <span className="req">*</span>}</label>
+                  <input id="password" type="password" className={`input ${fieldErrors.password ? 'error' : ''}`} placeholder={isRegister ? 'At least 8 characters' : 'Password'} value={password} disabled={loading} onChange={(event) => setPassword(event.target.value)} />
+                  {isRegister && !fieldErrors.password && (<div className="hint">Use 8+ characters with at least one letter and one number.</div>)}
+                  {fieldErrors.password && <div className="hint error">{fieldErrors.password}</div>}
+                </div>
+
+                {!isRegister && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 18 }}>
+                    <button type="button" className="forgot-link" onClick={() => { setRecoveryEmail(email.trim()); setRecoveryError(''); setRecoverySuccess(''); setRecoveryView('request'); }}>
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
+
+                {isRegister && (
+                  <div className="field checkbox-row" style={{ marginBottom: 20 }}>
+                    <input type="checkbox" id="terms" checked={termsAccepted} disabled={loading} onChange={(event) => setTermsAccepted(event.target.checked)} />
+                    <label htmlFor="terms">I agree to Terms and Privacy Policy</label>
+                  </div>
+                )}
+
+                <button type="submit" className={`btn btn-primary btn-block ${loading || !isFormValid ? 'disabled' : ''}`} disabled={loading || !isFormValid}>
+                  {loading && <span className="spinner" />}
+                  {loading ? (isRegister ? 'Creating account...' : 'Signing in...') : (isRegister ? 'Create account' : 'Sign in')}
+                </button>
+              </form>
+
+              <div className="auth-switch">
+                {isRegister ? (
+                  <>Already have an account? <button type="button" onClick={() => switchMode('login')}>Log in</button></>
+                ) : (
+                  <>Need an account? <button type="button" onClick={() => switchMode('register')}>Sign up</button></>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="auth-illustration">
+          <div className="illus-hero">
+            <h3>{isRegister ? 'One place for the whole team to talk.' : 'Pick up right where you left off.'}</h3>
+            <p>{isRegister ? 'Channels for topics, not endless email threads.' : 'Every channel and message, right where you expect it.'}</p>
+          </div>
+          <div className="illus-card">
+            <div className="msg-row">
+              <div className="msg-avatar" style={{ background: 'var(--brand-500)' }}>JT</div>
+              <div className="msg-content">
+                <div className="msg-top">
+                  <span className="msg-name">Jordan Tate</span>
+                  <span className="msg-time">10:14 AM</span>
+                </div>
+                <div className="msg-text">Pushed the auth API. Ready to wire up whenever.</div>
+              </div>
+            </div>
+            <div className="msg-row">
+              <div className="msg-avatar" style={{ background: 'var(--brand-400)' }}>MC</div>
+              <div className="msg-content">
+                <div className="msg-top">
+                  <span className="msg-name">Maya Chen</span>
+                  <span className="msg-time">10:16 AM</span>
+                </div>
+                <div className="msg-text">Nice. Pulling it into the login screen now.</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  return renderRecoveryScreen();
 }
 
 const HuddleApp: React.FC = () => {

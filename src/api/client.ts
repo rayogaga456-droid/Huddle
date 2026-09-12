@@ -132,6 +132,34 @@ export interface SendMessageResponse {
   message: ApiMessage;
 }
 
+export type ForgotPasswordPayload = {
+  email: string;
+};
+
+export type ResetPasswordPayload = {
+  token: string;
+  password: string;
+  confirmPassword?: string;
+};
+
+export async function forgotPassword(email: string): Promise<{ message: string }> {
+  const res = await fetch(`${BASE_URL}/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  return handleResponse<{ message: string }>(res);
+}
+
+export async function resetPassword(token: string, password: string, confirmPassword?: string): Promise<{ message: string }> {
+  const res = await fetch(`${BASE_URL}/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, password, ...(confirmPassword ? { confirmPassword } : {}) }),
+  });
+  return handleResponse<{ message: string }>(res);
+}
+
 export async function getMessages(channelId: string): Promise<MessagesResponse> {
   const res = await fetch(`${BASE_URL}/channels/${channelId}/messages`, {
     headers: authHeaders(),
