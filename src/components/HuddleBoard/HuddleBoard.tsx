@@ -127,7 +127,11 @@ const HuddleBoard: React.FC = () => {
     );
 
     if (appState.activeChannelId && !isDm) {
-      loadMessages(appState.activeChannelId);
+      const loadTimer = window.setTimeout(() => {
+        loadMessages(appState.activeChannelId);
+      }, 0);
+
+      return () => window.clearTimeout(loadTimer);
     }
   }, [
     appState.activeChannelId,

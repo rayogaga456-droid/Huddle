@@ -24,9 +24,13 @@ const CreateChannelModal: React.FC<Props> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setName('');
-      setIsPrivate(false);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      const resetTimer = window.setTimeout(() => {
+        setName('');
+        setIsPrivate(false);
+        inputRef.current?.focus();
+      }, 50);
+
+      return () => window.clearTimeout(resetTimer);
     }
   }, [isOpen]);
 

@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import './App.css';
 import type { AppState, Channel, ChannelStatus, Message, Member } from './types';
 import { avatarColorFor, initialsFrom, formatTimestamp } from './types';
 import { getChannels, getMessages, sendMessage, createChannel } from './api/client';
 import type { ApiMessage } from './api/client';
+import { AuthError, loginUser as loginWithPassword, registerUser } from './services/auth';
+import { clearSession, getSession, saveSession } from './services/sessionStore';
 import WorkspaceSwitcher from './components/WorkspaceSwitcher/WorkspaceSwitcher';
 import Sidebar from './components/Sidebar/Sidebar';
 import ChatPane from './components/ChatPane/ChatPane';
@@ -10,10 +13,19 @@ import NewDmModal from './components/NewDmModal/NewDmModal';
 import CreateChannelModal from './components/CreateChannelModal/CreateChannelModal';
 import styles from './App.module.css';
 
+type AuthMode = 'login' | 'register';
+
+type FieldErrors = {
+  fullName?: string;
+  email?: string;
+  password?: string;
+};
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+
 // ── Token + user handoff from login app ──────────────────
 // Login app redirects here with ?token=xxx&name=xxx&email=xxx
-const LOGIN_URL = import.meta.env.VITE_LOGIN_URL ?? 'https://huddle-one-psi.vercel.app';
-
 const params = new URLSearchParams(window.location.search);
 const urlToken = params.get('token');
 const urlName  = params.get('name');
@@ -35,24 +47,24 @@ function redirectToLogin() {
   localStorage.removeItem('huddle_token');
   localStorage.removeItem('huddle_user_name');
   localStorage.removeItem('huddle_user_email');
-  if (LOGIN_URL) {
-    try {
-      const target = new URL(LOGIN_URL, window.location.origin);
-      if (window.location.href !== target.href) {
-        window.location.href = target.href;
-      }
-    } catch {
-      window.location.href = LOGIN_URL;
-    }
-  }
+  clearSession();
+  window.location.href = window.location.pathname;
 }
 
-// If no token at all → redirect to login
-if (!localStorage.getItem('huddle_token')) {
-  if (LOGIN_URL && !window.location.href.startsWith(LOGIN_URL)) {
-    redirectToLogin();
-  }
+// Accept the previous local login storage shape and expose the token key used by api/client.
+function bridgeStoredSession(): boolean {
+  if (localStorage.getItem('huddle_token')) return true;
+
+  const session = getSession();
+  if (!session) return false;
+
+  localStorage.setItem('huddle_token', session.accessToken);
+  if (session.user.name) localStorage.setItem('huddle_user_name', session.user.name);
+  if (session.user.email) localStorage.setItem('huddle_user_email', session.user.email);
+  return true;
 }
+
+bridgeStoredSession();
 
 const storedName  = localStorage.getItem('huddle_user_name') ?? '';
 const storedEmail = localStorage.getItem('huddle_user_email') ?? '';
@@ -176,7 +188,266 @@ const mapApiMessage = (m: ApiMessage): Message => {
   };
 };
 
-const App: React.FC = () => {
+function AuthScreen() {
+  const [mode, setMode] = useState<AuthMode>('login');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState('');
+  const [accountCreated, setAccountCreated] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const isRegister = mode === 'register';
+  const isFormValid = isRegister
+    ? fullName.trim().length > 0 && EMAIL_RE.test(email) && PASSWORD_RE.test(password) && termsAccepted
+    : email.trim().length > 0 && password.length > 0;
+
+  const switchMode = (nextMode: AuthMode) => {
+    setMode(nextMode);
+    setAccountCreated(false);
+    setFullName('');
+    setEmail('');
+    setPassword('');
+    setTermsAccepted(false);
+    setFieldErrors({});
+    setFormError('');
+    setLoading(false);
+  };
+
+  const validate = () => {
+    const errors: FieldErrors = {};
+
+    if (isRegister && !fullName.trim()) errors.fullName = 'Enter your name';
+    if (!email.trim()) {
+      errors.email = 'Enter your email address';
+    } else if (!EMAIL_RE.test(email)) {
+      errors.email = 'Enter a valid email address';
+    }
+    if (!password) {
+      errors.password = 'Enter your password';
+    } else if (isRegister && !PASSWORD_RE.test(password)) {
+      errors.password = 'Use at least 8 characters with at least one letter and one number';
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setFormError('');
+    setFieldErrors({});
+
+    if (!validate()) {
+      setFormError(
+        isRegister
+          ? "We couldn't create your account. Fix the fields below and try again."
+          : "That email and password don't match. Try again or reset your password.",
+      );
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      if (isRegister) {
+        await registerUser({
+          name: fullName.trim(),
+          email: email.trim(),
+          password,
+        });
+        setAccountCreated(true);
+        setPassword('');
+        return;
+      }
+
+      const session = await loginWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      saveSession(session);
+      localStorage.setItem('huddle_token', session.accessToken);
+      if (session.user.name) localStorage.setItem('huddle_user_name', session.user.name);
+      if (session.user.email) localStorage.setItem('huddle_user_email', session.user.email);
+      window.location.reload();
+    } catch (error) {
+      if (error instanceof AuthError && isRegister && error.status === 409) {
+        setFormError(error.message || 'An account with this email already exists.');
+      } else {
+        setFormError(
+          isRegister
+            ? "We couldn't create your account. Please check your details and try again."
+            : "That email and password don't match. Try again or reset your password.",
+        );
+      }
+    } finally {
+      setLoading(false);
+      if (!isRegister) setPassword('');
+    }
+  };
+
+  return (
+    <div className="auth-screen">
+      <div className="auth-form-col">
+        {accountCreated ? (
+          <div style={{ textAlign: 'center' }}>
+            <div
+              style={{
+                width: 60,
+                height: 60,
+                borderRadius: '50%',
+                background: '#e9f8f1',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 22px',
+              }}
+            >
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12.5L9.5 17L19 7" stroke="#18a875" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <h2 style={{ marginBottom: 10 }}>Account created</h2>
+            <div className="sub" style={{ marginBottom: 28 }}>Sign in with your new account to continue.</div>
+            <button type="button" className="btn btn-primary" onClick={() => switchMode('login')}>
+              Go to sign in
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="mini-brand">
+              <div className="mark">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20H6L4 22V12Z"
+                    fill="white"
+                  />
+                </svg>
+              </div>
+              <span>huddle</span>
+            </div>
+
+            <h2>{isRegister ? 'Create your account' : 'Welcome back'}</h2>
+            <div className="sub">{isRegister ? 'Takes about a minute.' : 'Sign in to jump into your channels.'}</div>
+
+            {formError && <div className="top-alert">{formError}</div>}
+
+            <form onSubmit={handleSubmit} noValidate>
+              {isRegister && (
+                <div className="field">
+                  <label htmlFor="fullName">Full name <span className="req">*</span></label>
+                  <input
+                    id="fullName"
+                    className={`input ${fieldErrors.fullName ? 'error' : ''}`}
+                    placeholder="Maya Chen"
+                    value={fullName}
+                    disabled={loading}
+                    onChange={(event) => setFullName(event.target.value)}
+                  />
+                  {fieldErrors.fullName && <div className="hint error">{fieldErrors.fullName}</div>}
+                </div>
+              )}
+
+              <div className="field">
+                <label htmlFor="email">Email {isRegister && <span className="req">*</span>}</label>
+                <input
+                  id="email"
+                  className={`input ${fieldErrors.email ? 'error' : ''}`}
+                  placeholder="you@company.com"
+                  value={email}
+                  disabled={loading}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+                {fieldErrors.email && <div className="hint error">{fieldErrors.email}</div>}
+              </div>
+
+              <div className="field">
+                <label htmlFor="password">Password {isRegister && <span className="req">*</span>}</label>
+                <input
+                  id="password"
+                  type="password"
+                  className={`input ${fieldErrors.password ? 'error' : ''}`}
+                  placeholder={isRegister ? 'At least 8 characters' : 'Password'}
+                  value={password}
+                  disabled={loading}
+                  onChange={(event) => setPassword(event.target.value)}
+                />
+                {isRegister && !fieldErrors.password && (
+                  <div className="hint">Use 8+ characters with at least one letter and one number.</div>
+                )}
+                {fieldErrors.password && <div className="hint error">{fieldErrors.password}</div>}
+              </div>
+
+              {isRegister && (
+                <div className="field checkbox-row" style={{ marginBottom: 20 }}>
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    checked={termsAccepted}
+                    disabled={loading}
+                    onChange={(event) => setTermsAccepted(event.target.checked)}
+                  />
+                  <label htmlFor="terms">I agree to Terms and Privacy Policy</label>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className={`btn btn-primary btn-block ${loading || !isFormValid ? 'disabled' : ''}`}
+                disabled={loading || !isFormValid}
+              >
+                {loading && <span className="spinner" />}
+                {loading ? (isRegister ? 'Creating account...' : 'Signing in...') : (isRegister ? 'Create account' : 'Sign in')}
+              </button>
+            </form>
+
+            <div className="auth-switch">
+              {isRegister ? (
+                <>Already have an account? <button type="button" onClick={() => switchMode('login')}>Log in</button></>
+              ) : (
+                <>Need an account? <button type="button" onClick={() => switchMode('register')}>Sign up</button></>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="auth-illustration">
+        <div className="illus-hero">
+          <h3>{isRegister ? 'One place for the whole team to talk.' : 'Pick up right where you left off.'}</h3>
+          <p>{isRegister ? 'Channels for topics, not endless email threads.' : 'Every channel and message, right where you expect it.'}</p>
+        </div>
+        <div className="illus-card">
+          <div className="msg-row">
+            <div className="msg-avatar" style={{ background: 'var(--brand-500)' }}>JT</div>
+            <div className="msg-content">
+              <div className="msg-top">
+                <span className="msg-name">Jordan Tate</span>
+                <span className="msg-time">10:14 AM</span>
+              </div>
+              <div className="msg-text">Pushed the auth API. Ready to wire up whenever.</div>
+            </div>
+          </div>
+          <div className="msg-row">
+            <div className="msg-avatar" style={{ background: 'var(--brand-400)' }}>MC</div>
+            <div className="msg-content">
+              <div className="msg-top">
+                <span className="msg-name">Maya Chen</span>
+                <span className="msg-time">10:16 AM</span>
+              </div>
+              <div className="msg-text">Nice. Pulling it into the login screen now.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const HuddleApp: React.FC = () => {
   const [appState, setAppState] = useState<AppState>({
     workspace: userWorkspace,
     channels: loadCustomChannels(),
@@ -327,21 +598,28 @@ const App: React.FC = () => {
     const isDm = appState.directMessages.some(dm => dm.id === appState.activeChannelId);
     if (isDm) {
       const dm = appState.directMessages.find(d => d.id === appState.activeChannelId);
-      setChannelStatus(dm && dm.messages.length > 0 ? 'loaded' : 'empty');
-      return;
+      const nextStatus = dm && dm.messages.length > 0 ? 'loaded' : 'empty';
+      const statusTimer = window.setTimeout(() => setChannelStatus(nextStatus), 0);
+      return () => window.clearTimeout(statusTimer);
     }
 
-    // Initial load for channel
-    fetchChannelMessages(appState.activeChannelId, true);
+    const initialTimer = window.setTimeout(() => {
+      fetchChannelMessages(appState.activeChannelId, true);
+    }, 0);
 
-    // Auto-poll every 3 seconds for real-time updates between multiple users (skip for custom local)
-    if (!appState.activeChannelId.startsWith('custom-')) {
-      const pollInterval = setInterval(() => {
-        fetchChannelMessages(appState.activeChannelId, false);
-      }, 3000);
-
-      return () => clearInterval(pollInterval);
+    if (appState.activeChannelId.startsWith('custom-')) {
+      return () => window.clearTimeout(initialTimer);
     }
+
+    // Auto-poll every 3 seconds for real-time updates between multiple users.
+    const pollInterval = window.setInterval(() => {
+      fetchChannelMessages(appState.activeChannelId, false);
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(pollInterval);
+    };
   }, [appState.activeChannelId, appState.directMessages, fetchChannelMessages]);
 
   // Select channel or DM
@@ -351,7 +629,7 @@ const App: React.FC = () => {
   };
 
   // Create a new channel
-  const handleCreateChannel = async (name: string, _isPrivate?: boolean) => {
+  const handleCreateChannel = async (name: string) => {
     const cleanName = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '');
     if (!cleanName) return;
 
@@ -592,6 +870,8 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+const App: React.FC = () => (bridgeStoredSession() ? <HuddleApp /> : <AuthScreen />);
 
 export default App;
 

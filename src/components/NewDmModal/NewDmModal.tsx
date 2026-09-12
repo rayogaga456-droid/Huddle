@@ -38,8 +38,12 @@ const NewDmModal: React.FC<Props> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setSearch('');
-      setTimeout(() => inputRef.current?.focus(), 50);
+      const resetTimer = window.setTimeout(() => {
+        setSearch('');
+        inputRef.current?.focus();
+      }, 50);
+
+      return () => window.clearTimeout(resetTimer);
     }
   }, [isOpen]);
 
