@@ -1,8 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 import type { AppState, Channel, ChannelStatus, Message, Member } from './types';
-import { avatarColorFor, initialsFrom, formatTimestamp } from './types';
-import { getChannels, getMessages, sendMessage, createChannel } from './api/client';
+import { avatarColorFor, initialsFrom, formatTimestamp, canonicalDmId } from './types';
+import {
+  getChannels,
+  getMessages,
+  sendMessage,
+  createChannel,
+  forgotPassword,
+  resetPassword,
+  ApiRequestError,
+} from './api/client';
 import type { ApiMessage } from './api/client';
 import { AuthError, loginUser as loginWithPassword, registerUser } from './services/auth';
 import { clearSession, getSession, saveSession } from './services/sessionStore';
@@ -23,6 +31,17 @@ type FieldErrors = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+
+function getRecoveryApiErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApiRequestError) {
+    if (error.status === 404 || /no route found/i.test(error.message)) {
+      return `Password recovery API is unavailable (HTTP ${error.status}). Please try again later.`;
+    }
+    return `Password recovery request failed (HTTP ${error.status}).`;
+  }
+
+  return error instanceof Error ? `Password recovery request failed: ${error.message}` : fallback;
+}
 
 // ── Token + user handoff from login app ──────────────────
 // Login app redirects here with ?token=xxx&name=xxx&email=xxx
@@ -107,7 +126,14 @@ function loadSavedDms(): Channel[] {
     const raw = localStorage.getItem(DM_STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed)) {
+      const unique = new Map<string, Channel>();
+      parsed.forEach((dm: Channel) => {
+        if (dm?.type !== 'dm' || !dm.id.startsWith('dm:')) return;
+        unique.set(dm.id, dm);
+      });
+      return Array.from(unique.values());
+    }
   } catch { /* ignore */ }
   return [];
 }
@@ -330,12 +356,11 @@ function AuthScreen() {
     setIsRecovering(true);
 
     try {
-      await import('./api/client').then(({ forgotPassword }) => forgotPassword(targetEmail));
+      await forgotPassword(targetEmail);
       setRecoveryView('check-email');
       setRecoverySuccess(`Check your email`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'We could not send the reset link right now.';
-      setRecoveryError(message);
+      setRecoveryError(getRecoveryApiErrorMessage(error, 'We could not send the reset link right now.'));
       setRecoveryView('request');
     } finally {
       setIsRecovering(false);
@@ -348,12 +373,11 @@ function AuthScreen() {
     setIsRecovering(true);
 
     try {
-      await import('./api/client').then(({ forgotPassword }) => forgotPassword(recoveryEmail || email.trim()));
+      await forgotPassword(recoveryEmail || email.trim());
       setRecoveryView('check-email');
       setRecoverySuccess('Check your email');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'We could not resend the reset link.';
-      setRecoveryError(message);
+      setRecoveryError(getRecoveryApiErrorMessage(error, 'We could not resend the reset link.'));
     } finally {
       setIsRecovering(false);
     }
@@ -383,7 +407,7 @@ function AuthScreen() {
     setIsRecovering(true);
 
     try {
-      await import('./api/client').then(({ resetPassword }) => resetPassword(resetToken, newPassword, confirmPassword));
+      await resetPassword(resetToken, newPassword, confirmPassword);
       setRecoveryView('success');
       setNewPassword('');
       setConfirmPassword('');
@@ -391,8 +415,7 @@ function AuthScreen() {
       const clean = window.location.pathname;
       window.history.replaceState({}, '', clean);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'We could not update your password.';
-      setResetError(message);
+      setResetError(getRecoveryApiErrorMessage(error, 'We could not update your password.'));
     } finally {
       setIsRecovering(false);
     }
@@ -872,20 +895,23 @@ const HuddleApp: React.FC = () => {
   };
 
   // Start a direct message with another user
-  const handleStartDm = (authorName: string, authorId?: string, authorEmail?: string) => {
-    if (!authorName) return;
-    const cleanId = (authorId || authorEmail || authorName).toLowerCase().replace(/[^a-z0-9]/g, '-');
-    const dmId = `dm-${cleanId}`;
+  const handleStartDm = (authorName: string, authorId?: string) => {
+    if (!authorName || !authorId || authorId === currentUserId) return;
+    const dmId = canonicalDmId(currentUserId, authorId);
 
     setAppState(prev => {
-      const existing = prev.directMessages.find(d => d.id === dmId);
+      const matching = prev.directMessages.filter(d => d.id === dmId);
+      const existing = matching[0];
       if (existing) {
-        return { ...prev, activeChannelId: dmId };
+        const deduplicated = prev.directMessages.filter(d => d.id !== dmId || d === existing);
+        if (deduplicated.length !== prev.directMessages.length) saveDms(deduplicated);
+        return { ...prev, directMessages: deduplicated, activeChannelId: dmId };
       }
       const newDm: Channel = {
         id: dmId,
         name: authorName,
         type: 'dm',
+        participantId: authorId,
         messages: [],
       };
       const nextDms = [...prev.directMessages, newDm];

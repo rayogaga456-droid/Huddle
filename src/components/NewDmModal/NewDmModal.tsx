@@ -68,20 +68,12 @@ const NewDmModal: React.FC<Props> = ({
     onClose();
   };
 
-  const handleCustomStart = () => {
-    if (!search.trim()) return;
-    onSelectUser(search.trim());
-    onClose();
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       onClose();
     } else if (e.key === 'Enter') {
       if (filtered.length > 0) {
         handleSelect(filtered[0]);
-      } else if (search.trim()) {
-        handleCustomStart();
       }
     }
   };
@@ -138,11 +130,8 @@ const NewDmModal: React.FC<Props> = ({
           {filtered.length === 0 && search.trim() && (
             <div className={styles.customUser}>
               <p className={styles.customUserText}>
-                No member found matching <strong>"{search.trim()}"</strong>
+                No signed-up member found matching <strong>"{search.trim()}"</strong>.
               </p>
-              <button type="button" className={styles.startBtn} onClick={handleCustomStart}>
-                Start direct message with "{search.trim()}"
-              </button>
             </div>
           )}
 

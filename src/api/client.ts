@@ -6,6 +6,16 @@
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://huddle-backend-fdnr.onrender.com/api';
 
+export class ApiRequestError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiRequestError';
+    this.status = status;
+  }
+}
+
 function getToken(): string | null {
   return localStorage.getItem('huddle_token');
 }
@@ -25,7 +35,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
       const body = await res.json();
       msg = body.error ?? msg;
     } catch { /* ignore */ }
-    throw new Error(msg);
+    throw new ApiRequestError(msg, res.status);
   }
   if (res.status === 204) return undefined as unknown as T;
   return res.json() as Promise<T>;

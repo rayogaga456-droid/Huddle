@@ -14,6 +14,7 @@ export interface Channel {
   id: string;
   name: string;
   type: 'channel' | 'dm';
+  participantId?: string;
   memberCount?: number;
   messages: Message[];
   unreadCount?: number;
