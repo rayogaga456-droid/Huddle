@@ -134,6 +134,52 @@ input {
   transition: 0.12s;
 }
 
+.password-input-wrap {
+  position: relative;
+}
+
+.password-input {
+  padding-right: 44px;
+}
+
+.password-visibility-toggle {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.password-visibility-toggle:hover:not(:disabled) {
+  color: var(--brand-600);
+  background: var(--brand-100);
+}
+
+.password-visibility-toggle:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 1px;
+}
+
+.password-visibility-toggle:disabled {
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+
+.password-visibility-toggle svg {
+  width: 17px;
+  height: 17px;
+}
+
 .input::placeholder {
   color: var(--text-tertiary);
 }

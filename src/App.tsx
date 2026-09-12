@@ -32,15 +32,59 @@ type FieldErrors = {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
 
+const EyeIcon = ({ hidden }: { hidden: boolean }) => (
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    {hidden ? (
+      <>
+        <path d="M3 3L21 21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M10.6 10.7a2 2 0 0 0 2.7 2.7M9.9 5.4A10.8 10.8 0 0 1 12 5.2c5.2 0 8.5 5 8.5 5s-.9 1.4-2.4 2.8M6.2 6.3C3.8 7.8 2.5 10.2 2.5 10.2s3.3 5 9.5 5c.7 0 1.4-.1 2-.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </>
+    ) : (
+      <>
+        <path d="M2.5 12s3.3-5 9.5-5 9.5 5 9.5 5-3.3 5-9.5 5-9.5-5-9.5-5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        <circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+      </>
+    )}
+  </svg>
+);
+
+interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  visible: boolean;
+  onToggleVisibility: () => void;
+}
+
+const PasswordInput: React.FC<PasswordInputProps> = ({ visible, onToggleVisibility, className = '', ...props }) => (
+  <div className="password-input-wrap">
+    <input {...props} type={visible ? 'text' : 'password'} className={`input password-input ${className}`} />
+    <button
+      type="button"
+      className="password-visibility-toggle"
+      onClick={onToggleVisibility}
+      aria-label={visible ? 'Hide password' : 'Show password'}
+      aria-pressed={visible}
+      disabled={props.disabled}
+    >
+      <EyeIcon hidden={!visible} />
+    </button>
+  </div>
+);
+
 function getRecoveryApiErrorMessage(error: unknown, fallback: string): string {
+  const rawMessage = error instanceof Error ? error.message : '';
+
+  if (/no route found|route not found/i.test(rawMessage)) {
+    const status = error instanceof ApiRequestError ? ` (HTTP ${error.status})` : '';
+    return `Password recovery API route is unavailable${status}. Please try again later.`;
+  }
+
   if (error instanceof ApiRequestError) {
-    if (error.status === 404 || /no route found/i.test(error.message)) {
+    if (error.status === 404) {
       return `Password recovery API is unavailable (HTTP ${error.status}). Please try again later.`;
     }
     return `Password recovery request failed (HTTP ${error.status}).`;
   }
 
-  return error instanceof Error ? `Password recovery request failed: ${error.message}` : fallback;
+  return rawMessage ? `Password recovery request failed: ${rawMessage}` : fallback;
 }
 
 // ── Token + user handoff from login app ──────────────────
@@ -244,6 +288,9 @@ function AuthScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetError, setResetError] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [newPasswordVisible, setNewPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
 
   const isRegister = mode === 'register';
   const isFormValid = isRegister
@@ -266,6 +313,9 @@ function AuthScreen() {
     setResetError('');
     setNewPassword('');
     setConfirmPassword('');
+    setPasswordVisible(false);
+    setNewPasswordVisible(false);
+    setConfirmPasswordVisible(false);
   };
 
   const validate = () => {
@@ -507,11 +557,11 @@ function AuthScreen() {
             <form onSubmit={handleResetPassword} noValidate>
               <div className="field recovery-field">
                 <label htmlFor="newPassword">New password</label>
-                <input id="newPassword" type="password" className={`input ${resetError ? 'error' : ''}`} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} disabled={isRecovering} placeholder="New password" />
+                <PasswordInput id="newPassword" visible={newPasswordVisible} onToggleVisibility={() => setNewPasswordVisible((visible) => !visible)} className={resetError ? 'error' : ''} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} disabled={isRecovering} placeholder="New password" />
               </div>
               <div className="field recovery-field">
                 <label htmlFor="confirmPassword">Confirm password</label>
-                <input id="confirmPassword" type="password" className={`input ${resetError ? 'error' : ''}`} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} disabled={isRecovering} placeholder="Confirm password" />
+                <PasswordInput id="confirmPassword" visible={confirmPasswordVisible} onToggleVisibility={() => setConfirmPasswordVisible((visible) => !visible)} className={resetError ? 'error' : ''} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} disabled={isRecovering} placeholder="Confirm password" />
               </div>
               <button type="submit" className="btn btn-primary btn-block" disabled={isRecovering}>
                 {isRecovering ? 'Updating...' : 'Update password'}
@@ -594,7 +644,7 @@ function AuthScreen() {
 
                 <div className="field">
                   <label htmlFor="password">Password {isRegister && <span className="req">*</span>}</label>
-                  <input id="password" type="password" className={`input ${fieldErrors.password ? 'error' : ''}`} placeholder={isRegister ? 'At least 8 characters' : 'Password'} value={password} disabled={loading} onChange={(event) => setPassword(event.target.value)} />
+                  <PasswordInput id="password" visible={passwordVisible} onToggleVisibility={() => setPasswordVisible((visible) => !visible)} className={fieldErrors.password ? 'error' : ''} placeholder={isRegister ? 'At least 8 characters' : 'Password'} value={password} disabled={loading} onChange={(event) => setPassword(event.target.value)} />
                   {isRegister && !fieldErrors.password && (<div className="hint">Use 8+ characters with at least one letter and one number.</div>)}
                   {fieldErrors.password && <div className="hint error">{fieldErrors.password}</div>}
                 </div>
